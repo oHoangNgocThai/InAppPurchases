@@ -45,8 +45,17 @@ billingClient.startConnection(object : BillingClientStateListener {
 * Để xử lý kết quả bạn phải implement interface **SkuDetailsResponseListener** sau đó override lại phương thức **onSkuDetailsResponse()** để tạo thông báo khi truy vấn kết thúc.
 
 ```
+val skuList = arrayListOf<String>()
+    skuList.add("free")
+    skuList.add("premium")
+    val params = SkuDetailsParams.newBuilder()
+    params.setSkusList(skuList).setType(BillingClient.SkuType.INAPP)
+    billingClient.querySkuDetailsAsync(params.build()) { responseCode, skuDetailsList ->
 
+    }
 ```
+
+* 
 
 # Use Google Play Billing with AIDL
 
