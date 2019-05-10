@@ -1,5 +1,38 @@
 # InAppPurchases
 
+# Overview
+
+Để sử dụng chức năng thanh toán, phải thông qua các bước như sau:
+
+* Có một ứng dụng được đăng lên **Google Play Console** với quyền BILLING. Ứng dụng phải ở trạng thái Publish hoặc là được publish qua **Open track**, **Closed track**, **Internal test track**.
+
+```
+<uses-permission android:name="com.android.vending.BILLING" />
+```
+
+* 
+
+
+# Upload app to Google Play Console
+
+## Build Signed Apk
+
+* Để build signed Apk, trước hết hãy chắc chắn bạn đang ở Build Variant là release với các cài đặt tương ứng cho phiên bản này.
+* Để thực hiện hãy truy cập Build -> Generate Signed Bundle/APK.
+* Nếu là ứng dụng mới đưa lên chợ, chúng ta sẽ cần phải tạo 1 keystore mới. Lưu ý rằng khi đã tạo rồi mà để mất file này thì sẽ không thể update được ứng dụng cho phiên bản tiếp theo.
+![](https://cdn-images-1.medium.com/max/800/0*uDKK6bSyT9c-v6gh)
+
+*   Hoàn thiện keystore password rồi finish là đợi một lúc để Android Studio build.
+
+## Upload app
+
+* Sau khi đã có file Apk, việc tiếp theo là truy cập vào Google Play Console để setting upload ứng dụng. Để làm được việc này bạn cần phải mua lấy một tài khoản google develop. Có thể tham khảo ở [đây](https://support.magplus.com/hc/en-us/articles/204270878-Android-Setting-up-Your-Google-Play-Developer-Account)
+
+* Truy cập vào [https://play.google.com/apps/publish/](https://play.google.com/apps/publish/) -> **All Application** -> **Create Application** -> **Enter title and create**.
+
+* Hiện tại ứng dụng đang ở trạng thái draf, muốn test được chúng ta phải publish app. Mà không cần đẩy lên hẳn chợ, chỉ cần sử dụng Internal test track là đủ. Để vào đó cấu hình hãy truy cập đường dẫn **App Releases** -> **Internal test track** -> **Create Release** -> **Upload signed apk** -> **Save** - **Review**.  
+
+* Còn bước cuối cùng để publish app ở dạng test, bạn cần phải hoàn thành một số mục như **Store listing**, **Content rating**, **Pricing & distribution** thì mới có thể hiện lên được button **START ROLLOUT TO BETA**. Tiếp đó đợi để có thể được review và publish app. 
 # Use Google Play Billing
 
 ## Thêm Google Play Billing vào trong ứng dụng
@@ -45,13 +78,16 @@ billingClient.startConnection(object : BillingClientStateListener {
 * Để xử lý kết quả bạn phải implement interface **SkuDetailsResponseListener** sau đó override lại phương thức **onSkuDetailsResponse()** để tạo thông báo khi truy vấn kết thúc.
 
 ```
-val skuList = arrayListOf<String>()
-    skuList.add("free")
-    skuList.add("premium")
-    val params = SkuDetailsParams.newBuilder()
-    params.setSkusList(skuList).setType(BillingClient.SkuType.INAPP)
-    billingClient.querySkuDetailsAsync(params.build()) { responseCode, skuDetailsList ->
-
+val skuList = listOf("thaihn_update_normal", "thaihn_update_premium")
+val params = SkuDetailsParams
+    .newBuilder()
+    .setSkusList(skuList)
+    .setType(BillingClient.SkuType.INAPP)
+    .build()
+    
+billingClient.querySkuDetailsAsync(params) { responseCode, skuDetailsList ->
+    if (responseCode == BillingClient.BillingResponse.OK) {
+        // Handle response
     }
 ```
 
