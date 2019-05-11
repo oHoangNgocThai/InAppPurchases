@@ -32,7 +32,8 @@
 
 * Hiện tại ứng dụng đang ở trạng thái draf, muốn test được chúng ta phải publish app. Mà không cần đẩy lên hẳn chợ, chỉ cần sử dụng Internal test track là đủ. Để vào đó cấu hình hãy truy cập đường dẫn **App Releases** -> **Internal test track** -> **Create Release** -> **Upload signed apk** -> **Save** - **Review**.  
 
-* Còn bước cuối cùng để publish app ở dạng test, bạn cần phải hoàn thành một số mục như **Store listing**, **Content rating**, **Pricing & distribution** thì mới có thể hiện lên được button **START ROLLOUT TO BETA**. Tiếp đó đợi để có thể được review và publish app. 
+* Còn bước cuối cùng để publish app ở dạng test, bạn cần phải hoàn thành một số mục như **Store listing**, **Content rating**, **Pricing & distribution** thì mới có thể hiện lên được button **START ROLLOUT TO BETA**. Tiếp đó đợi để có thể được review và publish app.
+ 
 # Use Google Play Billing
 
 ## Thêm Google Play Billing vào trong ứng dụng
@@ -91,7 +92,76 @@ billingClient.querySkuDetailsAsync(params) { responseCode, skuDetailsList ->
     }
 ```
 
-* 
+* Sau khi nhận được danh sách SkuDetail, thự hiện hiển thị các item đó ra dạng danh sách với các thôn tin như title, price. 
+
+## Cho phép mua sản phẩm trong ứng dụng
+
+* Một số điện thoại Android có thể không hỗ trợ một sản phẩm nhất định, ví dụ như các sản phẩm subscriptions. Do đó trước mỗi phiên thanh toán, bạn cần gọi phương thức **isFeatureSupported()** để có thể kiểm tra được điều kiện. Để xem được danh sách các loại sản phẩm, tìm hiểu thêm về [BillingClient.FeatureType](https://developer.android.com/reference/com/android/billingclient/api/BillingClient.FeatureType).
+
+* Sau khi bắt sự kiện click vào 1 item nào đó để tiến hành mua sản phẩm, chúng ta sử dụng phương thức **launchBillingFlow()** để hiển thị flow thanh toán.
+
+```
+val billingFlowParam = BillingFlowParams
+    .newBuilder()
+    .setSkuDetails(item)
+    .build()
+billingClient.launchBillingFlow(this, billingFlowParam)
+```
+
+* Bạn nên sử dụng **PurchasesUpdatedListener** để lắng nghe nếu như có sự thay đổi khi mua hàng thành công. Nếu như bạn muốn người dùng có thể mua tiếp sản phẩm vừa mua, chỉ cần clear nó sau mỗi lần mua.
+
+```
+override fun onPurchasesUpdated(responseCode: Int, purchases: MutableList<Purchase>?) {
+    when(responseCode) {
+            BillingClient.BillingResponse.OK -> {
+                purchases?.let {
+                    // Handle response success
+                    allowMultiplePurchases(purchases)
+                }
+            }
+            BillingClient.BillingResponse.USER_CANCELED -> {
+                // Handle response cancel
+            }
+        }
+}
+
+private fun allowMultiplePurchases(purchases: MutableList<Purchase>?) {
+        val purchase = purchases?.first()
+        if (purchase != null) {
+            billingClient.consumeAsync(purchase.purchaseToken) { responseCode, purchaseToken ->
+                if (responseCode == BillingClient.BillingResponse.OK && purchaseToken != null) {
+                    Log.d(TAG, "AllowMultiplePurchases success, responseCode: $responseCode")
+                } else {
+                    Log.d(TAG, "Can't allowMultiplePurchases, responseCode: $responseCode")
+                }
+            }
+        }
+    }
+```
+
+* Khi có sự thay đổi, thông thường phải mất 15 đến 20p mới có thể cập nhật được vì Google Play có cơ chế cache lại dữ liệu. Vì vậy nếu muốn cập nhật ngay tại app khi request, chúng ta có 2 cách sau:
+
+    * Nếu bạn clear cache của ứng dụng Google Play trên thiết bị, sẽ có thể cập nhật được ngay. Nhưng rõ ràng cách này không ổn lắm. 
+    * Vậy nên cách thứ 2 là clear history purchases của Google Play nếu cần, sử dụng phương thức **queryPurchases()**
+    
+    ```
+    billingClient.queryPurchases(BillingClient.SkuType.INAPP).purchasesList
+        .forEach {
+            billingClient.consumeAsync(it.purchaseToken) { responseCode, purchaseToken ->
+                if (responseCode == BillingClient.BillingResponse.OK && purchaseToken != null) {
+                    println("onPurchases Updated consumeAsync, purchases token removed: $purchaseToken")
+                } else {
+                    println("onPurchases some troubles happened: $responseCode")
+            }
+        }
+    }
+    ```
+
+## Test billing
+
+* Để có thể test được, bạn cần thêm các tài khoản test vào phần internal test track. Chỉ có những email trong đó mới có thể tìm thấy ứng dụng. Nhưng trước hết bạn cần vào Developer Console App Releases → Alpha → Manage testers → Tìm Opt-in URL và gửi email test để họ chấp nhận.
+
+* Sau khi thêm tài khoản tester, email này có thể thoải mái mua hàng mà không mất tiền.
 
 # Use Google Play Billing with AIDL
 
