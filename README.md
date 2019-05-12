@@ -6,10 +6,6 @@
 
 * Có một ứng dụng được đăng lên **Google Play Console** với quyền BILLING. Ứng dụng phải ở trạng thái Publish hoặc là được publish qua **Open track**, **Closed track**, **Internal test track**.
 
-```
-<uses-permission android:name="com.android.vending.BILLING" />
-```
-
 * 
 
 
@@ -34,11 +30,11 @@
 
 * Còn bước cuối cùng để publish app ở dạng test, bạn cần phải hoàn thành một số mục như **Store listing**, **Content rating**, **Pricing & distribution** thì mới có thể hiện lên được button **START ROLLOUT TO BETA**. Tiếp đó đợi để có thể được review và publish app.
  
-# Use Google Play Billing
+# Google Play Billing
 
-## Thêm Google Play Billing vào trong ứng dụng
+## Use Google Play Billing
 
-### Cập nhật dependencies trong ứng dụng
+* Trước hết phải thêm dependencies của Google Play Billing như sau:
 
 ```
 dependencies {
@@ -47,12 +43,16 @@ dependencies {
 }
 ```
 
-### Kết nối với Google Play
+* Thêm quyền billing cho ứng dụng bên trong AndroidManifest.xml 
 
-> Trước khi bạn có thể tạo được yêu cầu Google Play Billing, trước hết bạn phải thiết lập kết nối đối với Google Play.
+```
+<uses-permission android:name="com.android.vending.BILLING" />
+```
 
 * Gọi đến phương thức **newBuilder()** để tạo ra một instance của **BillingClient**, tiếp đến bạn cũng phải gọi đến phương thức **setListener** để lắng nghe được sự kiện của **PurchasesUpdatedListener** để nhận được những cập nhật purchases bởi ứng dụng của bạn.
+
 * Thiết lập một kết nối đối với Google Play. Sử dụng phương thức **startConnection()** để bắt đầu kết nối và dữ liệu sẽ nhận về thông qua **BillingClientStateListener**.
+
 * Override phương thức **onBillingServiceDisconnected()** và xử lý khi bị mất liên kết với Google Play. Ví dụ như kết nối có thể bị mất khi Google Play Store Service cập nhật bên trong background. Chính vì vậy nên cần phải gọi **startConnection()** để tạo lại một connection trước khi thực hiện lại 1 yêu cầu.
 
 ```
@@ -71,6 +71,8 @@ billingClient.startConnection(object : BillingClientStateListener {
    }
 })
 ```
+
+## Item Product
 
 ### Lấy ra các thông tin in-app detail
 
@@ -94,7 +96,7 @@ billingClient.querySkuDetailsAsync(params) { responseCode, skuDetailsList ->
 
 * Sau khi nhận được danh sách SkuDetail, thự hiện hiển thị các item đó ra dạng danh sách với các thôn tin như title, price. 
 
-## Cho phép mua sản phẩm trong ứng dụng
+### Cho phép mua sản phẩm trong ứng dụng
 
 * Một số điện thoại Android có thể không hỗ trợ một sản phẩm nhất định, ví dụ như các sản phẩm subscriptions. Do đó trước mỗi phiên thanh toán, bạn cần gọi phương thức **isFeatureSupported()** để có thể kiểm tra được điều kiện. Để xem được danh sách các loại sản phẩm, tìm hiểu thêm về [BillingClient.FeatureType](https://developer.android.com/reference/com/android/billingclient/api/BillingClient.FeatureType).
 
@@ -157,11 +159,14 @@ private fun allowMultiplePurchases(purchases: MutableList<Purchase>?) {
     }
     ```
 
-## Test billing
+### Test billing
 
 * Để có thể test được, bạn cần thêm các tài khoản test vào phần internal test track. Chỉ có những email trong đó mới có thể tìm thấy ứng dụng. Nhưng trước hết bạn cần vào Developer Console App Releases → Alpha → Manage testers → Tìm Opt-in URL và gửi email test để họ chấp nhận.
 
 * Sau khi thêm tài khoản tester, email này có thể thoải mái mua hàng mà không mất tiền.
 
-# Use Google Play Billing with AIDL
+
+
+## Subscription
+
 
