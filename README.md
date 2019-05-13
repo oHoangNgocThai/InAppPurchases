@@ -95,8 +95,9 @@ billingClient.querySkuDetailsAsync(params) { responseCode, skuDetailsList ->
         // Handle response
     }
 ```
+> Chú ý list skuDetail ở đây là PRODUCT ID khi bạn tạo các item product ở trên Google Play Console.
 
-* Sau khi nhận được danh sách SkuDetail, thự hiện hiển thị các item đó ra dạng danh sách với các thôn tin như title, price. 
+* Sau khi nhận được danh sách SkuDetail, thự hiện hiển thị các item đó ra dạng danh sách với các thông tin như title, price. 
 
 ### Cho phép mua sản phẩm trong ứng dụng
 
@@ -167,8 +168,9 @@ private fun allowMultiplePurchases(purchases: MutableList<Purchase>?) {
 
 * Sau khi thêm tài khoản tester, email này có thể thoải mái mua hàng mà không mất tiền.
 
-
+* Khi test cần tải đúng app đó ở trên CH Play về để test.
 
 ## Subscription
 
+* Trước hết phải tạo subscription ở trên Google Play Console, chi tiết tại [đây](https://support.google.com/googleplay/android-developer/answer/140504?hl=en)
 

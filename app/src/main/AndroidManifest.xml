@@ -12,7 +12,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".mainapp.itemproduct.ProductActivity"></activity>
+        <activity android:name=".mainapp.reward.RewardActivity"></activity>
         <activity android:name=".mainapp.main.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -20,6 +20,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".mainapp.subscriptions.SubscriptionActivity"
+            android:label="Subscription Billing" />
+        <activity
+            android:name=".mainapp.itemproduct.ProductActivity"
+            android:label="Product Billing" />
     </application>
 
 </manifest>

@@ -1,4 +1,4 @@
-package code.android.ngocthai.inapppurchases.mainapp.itemproduct
+package code.android.ngocthai.inapppurchases.mainapp.subscriptions
 
 import android.annotation.SuppressLint
 import android.os.Bundle
@@ -9,22 +9,23 @@ import android.view.MenuItem
 import android.widget.Toast
 import code.android.ngocthai.inapppurchases.R
 import code.android.ngocthai.inapppurchases.base.ui.BaseActivity
+import code.android.ngocthai.inapppurchases.mainapp.itemproduct.ProductAdapter
 import com.android.billingclient.api.*
 import kotlinx.android.synthetic.main.activity_product.*
 
-class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter.ProductListener {
+class SubscriptionActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter.ProductListener {
 
     companion object {
-        private val TAG = ProductActivity::class.java.simpleName
+        private val TAG = SubscriptionActivity::class.java.simpleName
 
-        private val skuList = listOf("inapp_billing_item1", "inapp_billing_item2", "inapp_billing_item3", "inapp_billing_premium")
+        private val skuList = listOf("subs_account_one_month", "subs_account_one_week")
     }
+
+    override val layoutResource: Int
+        get() = R.layout.activity_subscription
 
     private lateinit var billingClient: BillingClient
     private val mProductAdapter = ProductAdapter(this)
-
-    override val layoutResource: Int
-        get() = R.layout.activity_product
 
     override fun initComponent(savedInstanceState: Bundle?) {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -36,26 +37,22 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
             layoutManager = LinearLayoutManager(applicationContext, RecyclerView.VERTICAL, false)
         }
 
-        buttonClearHistory.setOnClickListener {
-            clearHistory()
-        }
-
         swipeRefreshProduct.setOnRefreshListener {
             queryProduct()
+        }
+
+        buttonClearHistory.setOnClickListener {
+            clearHistory()
         }
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
-        when(item?.itemId) {
+        when (item?.itemId) {
             android.R.id.home -> {
                 onBackPressed()
             }
         }
         return true
-    }
-
-    override fun onItemClick(item: SkuDetails) {
-        launchBillingFlow(item)
     }
 
     @SuppressLint("SwitchIntDef")
@@ -65,12 +62,14 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
             BillingClient.BillingResponse.OK -> {
                 purchases?.let {
                     // Handle response success
-                    allowMultiplePurchases(purchases)
+//                    allowMultiplePurchases(purchases)
+                    Toast.makeText(applicationContext, "Billing success. Product $purchases", Toast.LENGTH_SHORT).show()
 //                    textResult.text = "Billing Ok. Product $purchases"
                 }
             }
             BillingClient.BillingResponse.USER_CANCELED -> {
                 // Handle response cancel
+                Toast.makeText(applicationContext, "Billing cancel", Toast.LENGTH_SHORT).show()
 //                textResult.text = "Cancel billing"
             }
             BillingClient.BillingResponse.ITEM_ALREADY_OWNED -> {
@@ -79,28 +78,8 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
         }
     }
 
-    // Query product
-    private fun queryProduct() {
-        if (billingClient.isReady) {
-            val params = SkuDetailsParams
-                    .newBuilder()
-                    .setSkusList(skuList)
-                    .setType(BillingClient.SkuType.INAPP)
-                    .build()
-            billingClient.querySkuDetailsAsync(params) { responseCode, skuDetailsList ->
-                swipeRefreshProduct.isRefreshing = false
-                Log.d(TAG, "querySkuDetailsAsync: responseCode:$responseCode -- skuDetailList: $skuDetailsList")
-                if (responseCode == BillingClient.BillingResponse.OK) {
-                    textResult.text = "Load product success"
-                    mProductAdapter.updateData(skuDetailsList)
-                } else {
-                    textResult.text = "Can't load product. responseCode:$responseCode"
-                }
-            }
-        } else {
-            swipeRefreshProduct.isRefreshing = false
-            textResult.text = "Billing Client not ready"
-        }
+    override fun onItemClick(item: SkuDetails) {
+        launchBillingFlow(item)
     }
 
     private fun launchBillingFlow(item: SkuDetails) {
@@ -127,6 +106,30 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
     }
 
 
+    // Query product
+    private fun queryProduct() {
+        if (billingClient.isReady) {
+            val params = SkuDetailsParams
+                    .newBuilder()
+                    .setSkusList(skuList)
+                    .setType(BillingClient.SkuType.SUBS)
+                    .build()
+            billingClient.querySkuDetailsAsync(params) { responseCode, skuDetailsList ->
+                swipeRefreshProduct.isRefreshing = false
+                Log.d(TAG, "querySkuDetailsAsync: responseCode:$responseCode -- skuDetailList: $skuDetailsList")
+                if (responseCode == BillingClient.BillingResponse.OK) {
+                    textResult.text = "Load product success"
+                    mProductAdapter.updateData(skuDetailsList)
+                } else {
+                    textResult.text = "Can't load product. responseCode:$responseCode"
+                }
+            }
+        } else {
+            swipeRefreshProduct.isRefreshing = false
+            textResult.text = "Billing Client not ready"
+        }
+    }
+
     // Setup connect to Billing service
     private fun setupBillingClient() {
         billingClient = BillingClient
@@ -145,7 +148,6 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
                     // Query purchases in here
                     Toast.makeText(applicationContext, "onBillingSetupFinished: response OK", Toast.LENGTH_SHORT).show()
                     queryProduct()
-
                 } else {
                     Toast.makeText(applicationContext, "onBillingSetupFinished: response fail: $responseCode", Toast.LENGTH_SHORT).show()
                 }

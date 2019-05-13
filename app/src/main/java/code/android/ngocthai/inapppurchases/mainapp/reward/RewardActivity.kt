@@ -1,4 +1,4 @@
-package code.android.ngocthai.inapppurchases.mainapp.itemproduct
+package code.android.ngocthai.inapppurchases.mainapp.reward
 
 import android.annotation.SuppressLint
 import android.os.Bundle
@@ -9,22 +9,23 @@ import android.view.MenuItem
 import android.widget.Toast
 import code.android.ngocthai.inapppurchases.R
 import code.android.ngocthai.inapppurchases.base.ui.BaseActivity
+import code.android.ngocthai.inapppurchases.mainapp.itemproduct.ProductAdapter
 import com.android.billingclient.api.*
 import kotlinx.android.synthetic.main.activity_product.*
 
-class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter.ProductListener {
+class RewardActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter.ProductListener {
 
     companion object {
-        private val TAG = ProductActivity::class.java.simpleName
+        private val TAG = RewardActivity::class.java.simpleName
 
-        private val skuList = listOf("inapp_billing_item1", "inapp_billing_item2", "inapp_billing_item3", "inapp_billing_premium")
+        private val skuList = listOf("ads_get_life")
     }
+
+    override val layoutResource: Int
+        get() = R.layout.activity_reward
 
     private lateinit var billingClient: BillingClient
     private val mProductAdapter = ProductAdapter(this)
-
-    override val layoutResource: Int
-        get() = R.layout.activity_product
 
     override fun initComponent(savedInstanceState: Bundle?) {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -35,23 +36,6 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
             adapter = mProductAdapter
             layoutManager = LinearLayoutManager(applicationContext, RecyclerView.VERTICAL, false)
         }
-
-        buttonClearHistory.setOnClickListener {
-            clearHistory()
-        }
-
-        swipeRefreshProduct.setOnRefreshListener {
-            queryProduct()
-        }
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
-        when(item?.itemId) {
-            android.R.id.home -> {
-                onBackPressed()
-            }
-        }
-        return true
     }
 
     override fun onItemClick(item: SkuDetails) {
@@ -79,36 +63,30 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
         }
     }
 
-    // Query product
-    private fun queryProduct() {
-        if (billingClient.isReady) {
-            val params = SkuDetailsParams
-                    .newBuilder()
-                    .setSkusList(skuList)
-                    .setType(BillingClient.SkuType.INAPP)
-                    .build()
-            billingClient.querySkuDetailsAsync(params) { responseCode, skuDetailsList ->
-                swipeRefreshProduct.isRefreshing = false
-                Log.d(TAG, "querySkuDetailsAsync: responseCode:$responseCode -- skuDetailList: $skuDetailsList")
-                if (responseCode == BillingClient.BillingResponse.OK) {
-                    textResult.text = "Load product success"
-                    mProductAdapter.updateData(skuDetailsList)
-                } else {
-                    textResult.text = "Can't load product. responseCode:$responseCode"
-                }
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        when (item?.itemId) {
+            android.R.id.home -> {
+                onBackPressed()
             }
-        } else {
-            swipeRefreshProduct.isRefreshing = false
-            textResult.text = "Billing Client not ready"
         }
+        return true
     }
 
     private fun launchBillingFlow(item: SkuDetails) {
-        val billingFlowParam = BillingFlowParams
-                .newBuilder()
-                .setSkuDetails(item)
-                .build()
-        billingClient.launchBillingFlow(this, billingFlowParam)
+        if (item.isRewarded) {
+            val params = RewardLoadParams.Builder()
+                    .setSkuDetails(item)
+                    .build()
+
+            billingClient.loadRewardedSku(params) { responseCode ->
+                Log.d(TAG, "response code:$responseCode")
+                if (responseCode == BillingClient.BillingResponse.OK) {
+                    // Enable the reward product, or make
+                    // any necessary updates to the UI.
+                    textResult.text = "Ad success"
+                }
+            }
+        }
     }
 
     private fun allowMultiplePurchases(purchases: MutableList<Purchase>?) {
@@ -125,7 +103,6 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
             }
         }
     }
-
 
     // Setup connect to Billing service
     private fun setupBillingClient() {
@@ -153,15 +130,27 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
         })
     }
 
-    private fun clearHistory() {
-        billingClient.queryPurchases(BillingClient.SkuType.INAPP)?.purchasesList?.forEach {
-            billingClient.consumeAsync(it.purchaseToken) { responseCode, purchaseToken ->
-                if (responseCode == BillingClient.BillingResponse.OK && purchaseToken != null) {
-                    Toast.makeText(applicationContext, "onPurchases Updated consumeAsync, purchases token removed: $purchaseToken", Toast.LENGTH_SHORT).show()
+    // Query product
+    private fun queryProduct() {
+        if (billingClient.isReady) {
+            val params = SkuDetailsParams
+                    .newBuilder()
+                    .setSkusList(skuList)
+                    .setType(BillingClient.SkuType.INAPP)
+                    .build()
+            billingClient.querySkuDetailsAsync(params) { responseCode, skuDetailsList ->
+                swipeRefreshProduct.isRefreshing = false
+                Log.d(TAG, "querySkuDetailsAsync: responseCode:$responseCode -- skuDetailList: $skuDetailsList")
+                if (responseCode == BillingClient.BillingResponse.OK) {
+                    textResult.text = "Load product success"
+                    mProductAdapter.updateData(skuDetailsList)
                 } else {
-                    Toast.makeText(applicationContext, "onPurchases some troubles happened: $responseCode", Toast.LENGTH_SHORT).show()
+                    textResult.text = "Can't load product. responseCode:$responseCode"
                 }
             }
+        } else {
+            swipeRefreshProduct.isRefreshing = false
+            textResult.text = "Billing Client not ready"
         }
     }
 }
