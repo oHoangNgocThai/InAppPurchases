@@ -16,7 +16,7 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
     companion object {
         private val TAG = ProductActivity::class.java.simpleName
 
-        private val skuList = listOf("thaihn_update_normal", "thaihn_update_premium", "inapp_purchases_item_two", "inapp_purchases_item_one", "inapp_purchases_item_three")
+        private val skuList = listOf("inapp_billing_item1", "inapp_billing_item2", "inapp_billing_item3")
     }
 
     private lateinit var billingClient: BillingClient
@@ -31,6 +31,10 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
         recyclerProduct.apply {
             adapter = mProductAdapter
             layoutManager = LinearLayoutManager(applicationContext, RecyclerView.VERTICAL, false)
+        }
+
+        buttonClearHistory.setOnClickListener {
+            clearHistory()
         }
 
         swipeRefreshProduct.setOnRefreshListener {

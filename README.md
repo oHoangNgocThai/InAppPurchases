@@ -74,6 +74,8 @@ billingClient.startConnection(object : BillingClientStateListener {
 
 ## Item Product
 
+* Trước hết chúng ta phải tạo ra các item product có trên Google Play Console, hướng dẫn cụ thể ở [đây](https://support.google.com/googleplay/android-developer/answer/1153481)
+
 ### Lấy ra các thông tin in-app detail
 
 * Duy nhất ID của sản phẩm mà bạn đã tạo khi định cấu hình bên trong ứng dụng. Nó được sử dụng để truy vấn một cách không đồng bộ từ Google Play chi tiết của ứng dụng, hãy sử dụng phương thức **querySkuDetailsAsync()**. Khi sử dụng phương thức này, hãy truyền một instance của **SkuDetailsParams** chỉ định danh sách các chuỗi ID sản phẩm và **SkuType**. SkuType có thể là **SkuType.INAPP** đối với sản phẩm một lần hoặc được thưởng hoặc **SkyType.SUBS** đối với trường hợp đăng ký.
