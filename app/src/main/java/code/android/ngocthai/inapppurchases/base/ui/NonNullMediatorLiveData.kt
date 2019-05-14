@@ -1,4 +1,4 @@
-package code.android.ngocthai.place.base
+package code.android.ngocthai.inapppurchases.base.ui
 
 import android.arch.lifecycle.MediatorLiveData
 

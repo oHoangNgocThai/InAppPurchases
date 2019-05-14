@@ -18,7 +18,7 @@ class RewardActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter.
     companion object {
         private val TAG = RewardActivity::class.java.simpleName
 
-        private val skuList = listOf("ads_get_life")
+        private val skuList = listOf("ads_get_life", "android.test.reward")
     }
 
     override val layoutResource: Int

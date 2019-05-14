@@ -17,7 +17,7 @@ class ProductActivity : BaseActivity(), PurchasesUpdatedListener, ProductAdapter
     companion object {
         private val TAG = ProductActivity::class.java.simpleName
 
-        private val skuList = listOf("inapp_billing_item1", "inapp_billing_item2", "inapp_billing_item3", "inapp_billing_premium")
+        private val skuList = listOf("inapp_billing_item1", "inapp_billing_item2", "inapp_billing_item3", "inapp_billing_update_premium")
     }
 
     private lateinit var billingClient: BillingClient
