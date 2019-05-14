@@ -1,5 +1,6 @@
 package code.android.ngocthai.inapppurchases.mainapp.ui.billing
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
 import android.arch.lifecycle.AndroidViewModel
@@ -12,10 +13,11 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         PurchasesUpdatedListener, BillingClientStateListener,
         ConsumeResponseListener, SkuDetailsResponseListener {
 
-
     companion object {
         private val TAG = BillingViewModel::class.java.simpleName
     }
+
+    var allowMultiplePurchase = false
 
     private lateinit var mBillingClient: BillingClient
 
@@ -30,6 +32,9 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
 
     private val mStatusReward = MutableLiveData<Boolean>()
     private val mRewardResponseCode = MutableLiveData<Int>()
+
+    private val mPurchasesUpdateLiveData = MutableLiveData<List<Purchase>>()
+    private val mPurchasesUpdateResponseCode = MutableLiveData<Int>()
 
     init {
         startDataSourceConnection(application)
@@ -46,10 +51,26 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
     }
 
     override fun onConsumeResponse(responseCode: Int, purchaseToken: String?) {
+        // return response consume
     }
 
+    @SuppressLint("SwitchIntDef")
     override fun onPurchasesUpdated(responseCode: Int, purchases: MutableList<Purchase>?) {
-
+        when (responseCode) {
+            BillingClient.BillingResponse.OK -> {
+                purchases?.let {
+                    mPurchasesUpdateLiveData.value = it.toList()
+                    if (allowMultiplePurchase) {
+                        it.first().let { purchases ->
+                            consumePurchasesAsync(purchases)
+                        }
+                    }
+                }
+            }
+            else -> {
+                mPurchasesUpdateResponseCode.value = responseCode
+            }
+        }
     }
 
     override fun onSkuDetailsResponse(responseCode: Int, skuDetailsList: MutableList<SkuDetails>?) {
@@ -94,7 +115,7 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         return false
     }
 
-    fun lauchBillingFlow(activity: Activity, skuDetail: SkuDetails) {
+    fun launchBillingFlow(activity: Activity, skuDetail: SkuDetails) {
         if (skuDetail.isRewarded) {
             launchBillingReward(skuDetail)
         } else {
@@ -164,6 +185,11 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun consumePurchasesAsync(purchase: Purchase) {
+        Log.d(TAG, "ConsumePurchasesAsync(): $purchase")
+        mBillingClient.consumeAsync(purchase.purchaseToken, this)
+    }
+
     fun getSetupConnectionResponse(): LiveData<Int> {
         return setupConnectionResponse
     }
@@ -182,6 +208,14 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
 
     fun getRewardResponseCode(): LiveData<Int> {
         return mRewardResponseCode
+    }
+
+    fun getPurchasesUpdateLiveData(): LiveData<List<Purchase>> {
+        return mPurchasesUpdateLiveData
+    }
+
+    fun getPurchasesUpdateResponseCode(): LiveData<Int> {
+        return mPurchasesUpdateResponseCode
     }
 
     override fun onCleared() {

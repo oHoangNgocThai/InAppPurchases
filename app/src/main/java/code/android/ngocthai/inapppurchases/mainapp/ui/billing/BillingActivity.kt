@@ -6,11 +6,13 @@ import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
+import android.widget.Toast
 import code.android.ngocthai.inapppurchases.R
 import code.android.ngocthai.inapppurchases.base.extension.nonNullSingle
 import code.android.ngocthai.inapppurchases.base.extension.observe
 import code.android.ngocthai.inapppurchases.base.ui.BaseActivity
 import code.android.ngocthai.inapppurchases.mainapp.itemproduct.ProductAdapter
+import code.android.ngocthai.inapppurchases.mainapp.util.BillingResponseCode
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.SkuDetails
 import kotlinx.android.synthetic.main.activity_product.*
@@ -31,6 +33,8 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
     override fun initComponent(savedInstanceState: Bundle?) {
         mViewModel = ViewModelProviders.of(this).get(BillingViewModel::class.java)
 
+        mViewModel.allowMultiplePurchase = true
+
         recyclerProduct.apply {
             adapter = mProductAdapter
             layoutManager = LinearLayoutManager(applicationContext, RecyclerView.VERTICAL, false)
@@ -48,14 +52,16 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
         mViewModel.getSetupConnectionResponse()
                 .nonNullSingle()
                 .observe(this) {
+                    Log.d(TAG, "getSetupConnectionResponse(): $it")
                     handleConnection(it)
                 }
 
+        // Get SkuDetails
         mViewModel.getSkuDetailLiveData()
                 .nonNullSingle()
                 .observe(this) {
                     swipeRefreshProduct.isRefreshing = false
-                    Log.d(TAG, "SkuDetails: $it")
+                    Log.d(TAG, "getSkuDetailLiveData(): $it")
                     mProductAdapter.updateData(it)
                 }
 
@@ -63,6 +69,7 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
                 .nonNullSingle()
                 .observe(this) {
                     // Handle get skuDetail if error
+                    Log.d(TAG, "getSkuDetailResponseCode(): $it")
                     swipeRefreshProduct.isRefreshing = false
                 }
 
@@ -71,13 +78,27 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
         mViewModel.getPurchasesLiveData()
                 .nonNullSingle()
                 .observe(this) {
-                    Log.d(TAG, "PurChases: $it")
+                    Log.d(TAG, "getPurchasesLiveData(): $it")
+                }
+
+        // Purchases update
+        mViewModel.getPurchasesUpdateLiveData()
+                .nonNullSingle()
+                .observe(this) {
+                    Log.d(TAG, "getPurchasesUpdateLiveData(): $it")
+                }
+
+        mViewModel.getPurchasesUpdateResponseCode()
+                .nonNullSingle()
+                .observe(this) {
+                    Log.d(TAG, "getPurchasesUpdateResponseCode(): $it")
+                    handlePurchasesUpdate(it)
                 }
 
     }
 
     override fun onItemClick(item: SkuDetails) {
-        mViewModel.lauchBillingFlow(this, item)
+        mViewModel.launchBillingFlow(this, item)
     }
 
     @SuppressLint("SwitchIntDef")
@@ -88,10 +109,19 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
                 mViewModel.querySkyDetailsAsync(BillingClient.SkuType.SUBS, BillingViewModel.ItemSku.SUBS_SKUS)
             }
             BillingClient.BillingResponse.BILLING_UNAVAILABLE -> {
-
+                Log.d(TAG, "handleConnection(): responseCode:$responseCode--message:${BillingResponseCode.BILLING_UNAVAILABLE.message}")
+                Toast.makeText(applicationContext, BillingResponseCode.BILLING_UNAVAILABLE.message, Toast.LENGTH_SHORT).show()
             }
-            else -> {
+        }
+    }
 
+    private fun handlePurchasesUpdate(responseCode: Int) {
+        when (responseCode) {
+            BillingClient.BillingResponse.USER_CANCELED -> {
+                Toast.makeText(applicationContext, BillingResponseCode.USER_CANCELED.message, Toast.LENGTH_SHORT).show()
+            }
+            BillingClient.BillingResponse.ITEM_ALREADY_OWNED -> {
+                Toast.makeText(applicationContext, BillingResponseCode.ITEM_ALREADY_OWNED.message, Toast.LENGTH_SHORT).show()
             }
         }
     }
