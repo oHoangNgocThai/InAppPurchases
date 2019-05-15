@@ -1,6 +1,5 @@
 package code.android.ngocthai.inapppurchases.mainapp.ui.billing
 
-import android.annotation.SuppressLint
 import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
@@ -95,13 +94,44 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
                     handlePurchasesUpdate(it)
                 }
 
+        // Reward
+        mViewModel.getStatusReward()
+                .nonNullSingle()
+                .observe(this) {
+                    Log.d(TAG, "getStatusReward(): $it")
+                }
+
+        mViewModel.getRewardResponseCode()
+                .nonNullSingle()
+                .observe(this) {
+                    handleRewardResponse(it)
+                }
+
+        // Consume
+        mViewModel.getConsumePurchaseToken()
+                .nonNullSingle()
+                .observe(this) {
+                    Log.d(TAG, "getConsumePurchaseToken(): $it")
+                    // Update ui
+                }
+
+        mViewModel.getConsumeResponseCode()
+                .nonNullSingle()
+                .observe(this) {
+                    Log.d(TAG, "getConsumePurchaseToken(): $it")
+                    handleConsumePurchase(it)
+                }
+
     }
 
     override fun onItemClick(item: SkuDetails) {
         mViewModel.launchBillingFlow(this, item)
     }
 
-    @SuppressLint("SwitchIntDef")
+    private fun handleConsumePurchase(responseCode: Int) {
+
+    }
+
     private fun handleConnection(responseCode: Int) {
         when (responseCode) {
             BillingClient.BillingResponse.OK -> {
@@ -118,11 +148,17 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
     private fun handlePurchasesUpdate(responseCode: Int) {
         when (responseCode) {
             BillingClient.BillingResponse.USER_CANCELED -> {
-                Toast.makeText(applicationContext, BillingResponseCode.USER_CANCELED.message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "handlePurchasesUpdate(): responseCode:$responseCode -- message:${BillingResponseCode.USER_CANCELED.message}", Toast.LENGTH_LONG).show()
             }
-            BillingClient.BillingResponse.ITEM_ALREADY_OWNED -> {
-                Toast.makeText(applicationContext, BillingResponseCode.ITEM_ALREADY_OWNED.message, Toast.LENGTH_SHORT).show()
+            BillingClient.BillingResponse.DEVELOPER_ERROR -> {
+                Toast.makeText(applicationContext, "handlePurchasesUpdate(): responseCode:$responseCode -- message:${BillingResponseCode.DEVELOPER_ERROR.message}", Toast.LENGTH_LONG).show()
             }
+        }
+    }
+
+    private fun handleRewardResponse(responseCode: Int) {
+        when (responseCode) {
+
         }
     }
 }
