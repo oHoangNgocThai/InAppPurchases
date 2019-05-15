@@ -200,10 +200,21 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         mBillingClient.querySkuDetailsAsync(params, this)
     }
 
-    fun clearHistory() {
+    fun clearInAppHistory() {
         mBillingClient.queryPurchases(BillingClient.SkuType.INAPP)?.purchasesList?.forEach {
             mBillingClient.consumeAsync(it.purchaseToken, this)
         }
+    }
+
+    fun clearSubsHistory() {
+        mBillingClient.queryPurchases(BillingClient.SkuType.SUBS)?.purchasesList?.forEach {
+            mBillingClient.consumeAsync(it.purchaseToken, this)
+        }
+    }
+
+    fun clearHistory() {
+        clearInAppHistory()
+        clearSubsHistory()
     }
 
     fun consumePurchasesAsync(purchase: Purchase) {
