@@ -13,6 +13,7 @@ import code.android.ngocthai.inapppurchases.base.ui.BaseActivity
 import code.android.ngocthai.inapppurchases.mainapp.itemproduct.ProductAdapter
 import code.android.ngocthai.inapppurchases.mainapp.util.BillingResponseCode
 import com.android.billingclient.api.BillingClient
+import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.SkuDetails
 import kotlinx.android.synthetic.main.activity_product.*
 
@@ -48,10 +49,10 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
             mViewModel.querySkyDetailsAsync(BillingClient.SkuType.SUBS, BillingViewModel.ItemSku.SUBS_SKUS)
         }
 
-        mViewModel.getSetupConnectionResponse()
+        mViewModel.getSetupBillingResult()
                 .nonNullSingle()
                 .observe(this) {
-                    Log.d(TAG, "getSetupConnectionResponse(): $it")
+                    Log.d(TAG, "getSetupBillingResult(): $it")
                     handleConnection(it)
                 }
 
@@ -64,11 +65,11 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
                     mProductAdapter.updateData(it)
                 }
 
-        mViewModel.getSkuDetailResponseCode()
+        mViewModel.getSkuDetailBillingResult()
                 .nonNullSingle()
                 .observe(this) {
                     // Handle get skuDetail if error
-                    Log.d(TAG, "getSkuDetailResponseCode(): $it")
+                    Log.d(TAG, "getSkuDetailBillingResult(): $it")
                     swipeRefreshProduct.isRefreshing = false
                 }
 
@@ -87,10 +88,10 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
                     Log.d(TAG, "getPurchasesUpdateLiveData(): $it")
                 }
 
-        mViewModel.getPurchasesUpdateResponseCode()
+        mViewModel.getPurchasesUpdateBillingResult()
                 .nonNullSingle()
                 .observe(this) {
-                    Log.d(TAG, "getPurchasesUpdateResponseCode(): $it")
+                    Log.d(TAG, "getPurchasesUpdateBillingResult(): $it")
                     handlePurchasesUpdate(it)
                 }
 
@@ -101,7 +102,7 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
                     Log.d(TAG, "getStatusReward(): $it")
                 }
 
-        mViewModel.getRewardResponseCode()
+        mViewModel.getRewardBillingResult()
                 .nonNullSingle()
                 .observe(this) {
                     handleRewardResponse(it)
@@ -115,7 +116,7 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
                     // Update ui
                 }
 
-        mViewModel.getConsumeResponseCode()
+        mViewModel.getConsumeBillingResult()
                 .nonNullSingle()
                 .observe(this) {
                     Log.d(TAG, "getConsumePurchaseToken(): $it")
@@ -128,36 +129,36 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
         mViewModel.launchBillingFlow(this, item)
     }
 
-    private fun handleConsumePurchase(responseCode: Int) {
+    private fun handleConsumePurchase(billingResult: BillingResult) {
 
     }
 
-    private fun handleConnection(responseCode: Int) {
-        when (responseCode) {
-            BillingClient.BillingResponse.OK -> {
+    private fun handleConnection(billingResult: BillingResult) {
+        when (billingResult.responseCode) {
+            BillingClient.BillingResponseCode.OK -> {
                 mViewModel.querySkyDetailsAsync(BillingClient.SkuType.INAPP, BillingViewModel.ItemSku.INAPP_SKUS)
                 mViewModel.querySkyDetailsAsync(BillingClient.SkuType.SUBS, BillingViewModel.ItemSku.SUBS_SKUS)
             }
-            BillingClient.BillingResponse.BILLING_UNAVAILABLE -> {
-                Log.d(TAG, "handleConnection(): responseCode:$responseCode--message:${BillingResponseCode.BILLING_UNAVAILABLE.message}")
+            BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> {
+                Log.d(TAG, "handleConnection(): responseCode:${billingResult.responseCode}--message:${billingResult.debugMessage}")
                 Toast.makeText(applicationContext, BillingResponseCode.BILLING_UNAVAILABLE.message, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun handlePurchasesUpdate(responseCode: Int) {
-        when (responseCode) {
-            BillingClient.BillingResponse.USER_CANCELED -> {
-                Toast.makeText(applicationContext, "handlePurchasesUpdate(): responseCode:$responseCode -- message:${BillingResponseCode.USER_CANCELED.message}", Toast.LENGTH_LONG).show()
+    private fun handlePurchasesUpdate(billingResult: BillingResult) {
+        when (billingResult.responseCode) {
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
+                Toast.makeText(applicationContext, "handlePurchasesUpdate(): responseCode:${billingResult.responseCode} -- message:${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
             }
-            BillingClient.BillingResponse.DEVELOPER_ERROR -> {
-                Toast.makeText(applicationContext, "handlePurchasesUpdate(): responseCode:$responseCode -- message:${BillingResponseCode.DEVELOPER_ERROR.message}", Toast.LENGTH_LONG).show()
+            BillingClient.BillingResponseCode.DEVELOPER_ERROR -> {
+                Toast.makeText(applicationContext, "handlePurchasesUpdate(): responseCode:${billingResult.responseCode} -- message:${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    private fun handleRewardResponse(responseCode: Int) {
-        when (responseCode) {
+    private fun handleRewardResponse(billingResult: BillingResult) {
+        when (billingResult.responseCode) {
 
         }
     }

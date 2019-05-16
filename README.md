@@ -119,9 +119,11 @@ Bạn có thể tham khảo thêm việc tạo subs tại [đây](https://suppor
 * Còn bước cuối cùng để publish app ở dạng test, bạn cần phải hoàn thành một số mục như **Store listing**, **Content rating**, **Pricing & distribution** thì mới có thể hiện lên được button **START ROLLOUT TO BETA**. Tiếp đó đợi để có thể được review và publish app.
 
 
-# Implement Google Play Billing
+# Google Play Billing
 
-## Connect to Google Play Billing
+## Use the Google Play Billing Library
+
+### Connect to Google Play Billing
 
 * Trước hết phải thêm dependencies của Google Play Billing như sau:
 
@@ -161,7 +163,7 @@ billingClient.startConnection(object : BillingClientStateListener {
 })
 ```
 
-## Query SkuDetail product
+### Query SkuDetail product
 
 * Muốn lấy được các sản phẩm mong muốn, trước hết phải xác định xem cần những item nào và Product ID của nó. Lưu ý thông thường để không phải cập nhật ứng dụng, những ID này nên được lưu ở server và tải về.
 
@@ -210,11 +212,23 @@ when(responseCode) {
 ```
 > Thông thường chúng ta nên lưu lại dữ liệu đã thanh toán ở local hoặc là server của mình, nên việc chuyển đối tượng SkuDetails sang một đối tượng có thêm các thuộc tính cần thiết.
 
-### Cho phép mua sản phẩm trong ứng dụng
+https://developer.android.com/google/play/billing/billing_library_overview#Query-recent
+
+### Enable the purchase
 
 * Một số điện thoại Android có thể không hỗ trợ một sản phẩm nhất định, ví dụ như các sản phẩm subscriptions. Do đó trước mỗi phiên thanh toán, bạn cần gọi phương thức **isFeatureSupported()** để có thể kiểm tra được điều kiện. Để xem được danh sách các loại sản phẩm, tìm hiểu thêm về [BillingClient.FeatureType](https://developer.android.com/reference/com/android/billingclient/api/BillingClient.FeatureType).
 
-* Sau khi bắt sự kiện click vào 1 item nào đó để tiến hành mua sản phẩm, chúng ta sử dụng phương thức **launchBillingFlow()** để hiển thị flow thanh toán.
+```
+private fun isSubscriptionSupported(): Boolean {
+    val responseCode = mBillingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS)
+    if (responseCode != BillingClient.BillingResponse.OK) {
+        Log.d(TAG, "isSubscriptionSupported() got an error response: $responseCode")
+    }
+    return responseCode == BillingClient.BillingResponse.OK
+}
+```
+
+* Sau khi bắt sự kiện click vào 1 item nào đó để tiến hành mua sản phẩm, chúng ta sử dụng phương thức **launchBillingFlow()** để hiển thị flow thanh toán với param là **BillingFlowParams**.
 
 ```
 val billingFlowParam = BillingFlowParams
@@ -224,23 +238,26 @@ val billingFlowParam = BillingFlowParams
 billingClient.launchBillingFlow(this, billingFlowParam)
 ```
 
-* Bạn nên sử dụng **PurchasesUpdatedListener** để lắng nghe nếu như có sự thay đổi khi mua hàng thành công. Nếu như bạn muốn người dùng có thể mua tiếp sản phẩm vừa mua, chỉ cần clear nó sau mỗi lần mua.
+* Sự kiện khi thanh toán thành công hoặc thất bại sẽ được trả về thông qua **PurchasesUpdatedListener** với phương thức **onPurchasesUpdated()**. Xử lý dữ liệu trả về thông qua responseCode, nếu response là OK thì purchaseList trả về sẽ là thông tin đơn hàng mà bạn vừa thanh toán.
 
 ```
 override fun onPurchasesUpdated(responseCode: Int, purchases: MutableList<Purchase>?) {
     when(responseCode) {
-            BillingClient.BillingResponse.OK -> {
-                purchases?.let {
-                    // Handle response success
-                    allowMultiplePurchases(purchases)
-                }
-            }
-            BillingClient.BillingResponse.USER_CANCELED -> {
-                // Handle response cancel
+        BillingClient.BillingResponse.OK -> {
+            purchases?.let {
+                // Handle response success
             }
         }
+        BillingClient.BillingResponse.USER_CANCELED -> {
+            // Handle response cancel
+        }
+    }
 }
+```
 
+* Theo mặc định thì những sản phẩn one-time sẽ không được mua lại, nếu click vào mua thì sẽ trả về responseCode là 7. Chính vì vậy để làm cho những sản phẩm này được đánh dấu là dùng hết rồi và có thể mua lại thì nên sử dụng phương thức **consumeAsync()** với tham số là purchaseToken lấy được từ các đơn hàng thanh toán rồi.
+
+```
 private fun allowMultiplePurchases(purchases: MutableList<Purchase>?) {
         val purchase = purchases?.first()
         if (purchase != null) {
@@ -254,30 +271,129 @@ private fun allowMultiplePurchases(purchases: MutableList<Purchase>?) {
         }
     }
 ```
+> Bạn cũng có thể Clear Cache của ứng dụng Google Play Store để xóa đi dữ liệu cache về thanh toán. Nhưng cách này có thể dẫn đến nhiều hậu quả khác nhau.
 
-* Khi có sự thay đổi, thông thường phải mất 15 đến 20p mới có thể cập nhật được vì Google Play có cơ chế cache lại dữ liệu. Vì vậy nếu muốn cập nhật ngay tại app khi request, chúng ta có 2 cách sau:
+### Acknowledge a purchase
 
-    * Nếu bạn clear cache của ứng dụng Google Play trên thiết bị, sẽ có thể cập nhật được ngay. Nhưng rõ ràng cách này không ổn lắm. 
-    * Vậy nên cách thứ 2 là clear history purchases của Google Play nếu cần, sử dụng phương thức **queryPurchases()**
+* Google Play hỗ trợ mua sản phẩm cả bên trong và bên ngoài của ứng dụng. Để đảm bảo trải nghiệm mua hàng nhất quán, bạn phải thừa nhận rằng tất cả các giao dịch đều ở trạng thái SUCCESS nhận được thông qua thư viện Google Play Billing.
+
+* Nếu bạn không xác nhận mua hàng trong vòng 3 ngày, người dùng sẽ tự động nhận được tiền hoàn lại và Google Play sẽ hủy bỏ giao dịch mua. Đối với các sản phẩm đang chờ xử lý, số 3 ngày này không dành cho các purchase ở trạng thái PENDING mà chỉ bắt đầu khi giao dịch đã mua chuyển qua trạng thái SUCCESS.
+
+* Bạn có thể xác nhận mua hàng bằng cách sử dụng một trong các phương pháp sau:
+
+    * Đối với các sản phẩm có thể tiêu thụ được, hãy sử dụng phương thức **consumerAsync()** tìm thấy trong Client API.
+    * Đối với các sản phẩm không được tiêu thụ, hãy sử dụng phương thức **acknowledgePurchase()** tìm thấy trong Client API.
+    * Phương thức **acknowledge()** cũng có sẵn trong Server API.
     
-    ```
-    billingClient.queryPurchases(BillingClient.SkuType.INAPP).purchasesList
-        .forEach {
-            billingClient.consumeAsync(it.purchaseToken) { responseCode, purchaseToken ->
-                if (responseCode == BillingClient.BillingResponse.OK && purchaseToken != null) {
-                    println("onPurchases Updated consumeAsync, purchases token removed: $purchaseToken")
-                } else {
-                    println("onPurchases some troubles happened: $responseCode")
+```
+fun acknowledgePurchase(purchase: Purchase) {
+        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+
+            // Acknowledge the purchase if it hasn't already been acknowledged
+            if (!purchase.isAcknowledged) {
+                val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+                        .setPurchaseToken(purchase.purchaseToken)
+                        .build()
+                mBillingClient.acknowledgePurchase(acknowledgePurchaseParams, this)
             }
         }
     }
-    ```
+```
 
-## Subscription
+* Đối với các giao dịch thực hiện bởi tester, acknowledge window sẽ ngắn hơn, thay vì 3 ngày thì chỉ còn lại 5 phút. Các giao dịch không được xác nhận sẽ được hoàn lại và thu hồi.
 
-* Trước hết phải tạo subscription ở trên Google Play Console, chi tiết tại [đây](https://support.google.com/googleplay/android-developer/answer/140504?hl=en)
+### Support pending transaction
 
+* Trong thực tế khi sử dụng các giải pháp của Google Play Billing, bạn phải hỗ trợ mua hàng khi cần thêm hành động trước khi cấp quyền. Ví dụ người dùng có thể chọn mua sản phẩm trong ứng dụng của bạn tại của hàng thực tế bằng tiền mặt. Điều này nghĩa là giao dịch được hoàn thành bên ngoài ứng dụng. Trong trường hợp này chỉ nên cấp quyền sau khi người dùng đã hoàn thành giao dịch.
 
+* Để bật chức năng pending purchase, gọi đến phương thức **enablePendingPurchases()** khi khởi tạo ứng dụng. Nếu không gọi đến phương thức này, bạn không thể khởi tạo thư viện Google Play Billing.
+
+```
+mBillingClient = BillingClient.newBuilder(application)
+                .enablePendingPurchases()
+                .setListener(this)
+                .build()
+```
+
+* Sử dụng phương thức **Purchase.getState()** để xác định xem trạng thái mua là **PURCHASED** hay **PENDING**. Lưu ý bạn chỉ nên cấp quyền khi đơn hàng ở trạng thái **PURCHASED**:
+
+    * Khi khởi động ứng dụng, hãy gọi phương thức **BillingClient.queryPurchase()** để truy xuất danh sách các sản phẩm chưa được liên kết với người dùng và sau đó lấy ra trạng thái state trên mỗi đối tượng mua hàng.
+    * Implement phương thức **onPurchasesUpdated()** để xử lý các thay đổi đối với đối tượng mua hàng.
+    
+```
+fun handlePurchase(purchase: Purchase) {
+    if(purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+        // Grant the item to the user, and then acknowledge the purchase
+        acknowledgePurchase(purchase)
+    } else if(purchase.purchaseState == Purchase.PurchaseState.PENDING) {
+        // Here you can confirm to the user that they've started the pending
+        // purchase, and to complete it, they should follow instructions that
+        // are given to them. You can also choose to remind the user in the
+        // future to complete the purchase if you detect that it is still
+        // pending.
+    }
+}
+```
+
+* Giao dịch đang chờ xử lý có thể được kiểm tra bằng bằng cách sử dụng license tester. Ngoài 2 thẻ tín dụng thử nghiệm, người kiểm tra giấy phép có quyền truy cập vào 2 công cụ kiểm tra cho các hình thức thanh toán bị trì hoãn tự động hoàn thành hoặc hủy sau vài phút.
+
+* Không nên cấp quyền hoặc thừa nhận việc mua ngay sau khi sử dụng 2 công cụ này. Khi mua bằng cách sử dụng công cụ kiểm tra tự động hoàn tất, bạn nên xác minh rằng ứng dụng của bạn cấp quyền và thừa nhận giao dịch sau khi mua hoàn tất.
+
+### Attach developer payload
+
+* Bạn có thể đính kèm một chuỗi string hoặc là develop payload để mua hàng. Tuy nhiên bạn chỉ có thể đính kèm developer payload khi giao dịch mua được thừa nhận hoặc tiêu thụ rồi. Điều này không giống như developer palyoad trong **AIDL**, nơi mà payload có thể được chỉ định khi khởi chạy luồng mua.
+
+* Đối với consumable products, phương thức consumeAsync() yêu cầu ConsumeParams chứa develop payload như sau: 
+
+```
+val consumeParams =
+    ConsumeParams.newBuilder()
+        .setPurchaseToken(/* token */)
+        .setDeveloperPayload(/* payload */)
+        .build()
+
+client.consumeAsync(consumeParams, listener)
+```
+
+* Đối với product aren't consumed, phương thức acknowledgePruchase() nhận params là **AcknowledgePurchaseParams** bao gồm developer payload như sau: 
+
+```
+val acknowledgePurchaseParams =
+    AcknowledgePurchaseParams.newBuilder()
+        .setPurchaseToken(/* token */)
+        .setDeveloperPayload(/* payload */)
+        .build()
+
+client.acknowledgePurchase(acknowledgePurchaseParams, listener)
+```
+
+* Bạn chỉ có thể consume hoặc acknowledge với purchase ở trạng thái **PURCHASED**.
+
+### Verify a purchase
+
+Việc verify một giao dịch có thể được thực hiển ở cả server và device. 
+
+* [Verify from server](https://developer.android.com/google/play/billing/billing_library_overview#Verify-purchase): Để tránh việc để người khác giả mạo response rồi trả về thanh toán trên device hãy thực hiện như sau.
+
+    * Sử dụng Google Play Developer API và phương thức GET để lấy ra được danh sách các hóa đơn của bạn. 
+    * Google Play sẽ trả về thông tin chi tiết của hóa đơn
+    * Server backend xác minh xem Order ID là duy nhất và chưa từng xuất hiện trước đó.
+    * Server backend dựa vào tài khoản người dùng đã nhận được và tiến hành xác minh lại các thông tin cần thiết.
+    * Nếu bạn đang sử dụng subscription để nâng cấp tài khoản hoặc hạ cấp tài khoản, hãy chú ý đến trường **linkedPurchaseToken** vì nó miêu tả các thông tin cần thiết.
+    * Sản phẩm trong ứng dụng được cung cấp cho người dùng.
+    
+* [Verify from device](https://developer.android.com/google/play/billing/billing_library_overview#Verify-purchase-device):
+
+    * Nếu bạn không có server, bạn vẫn có thể xác thực chi tiết mua hàng thông qua ứng dụng Android.
+    * Để đảm bảo an toàn, Google Play sẽ ký chuỗi JSON phải hồi cho giao dịch mua. Chuỗi này được mã hóa bí mật với cặp hóa RSA cho mỗi ứng dụng và trả về qua phương thức **getOrigenJson()** trong Purchase.
+    * Để lấy được cặp khóa này, truy cập vào Play Console -> Services & API.
+    * Khi ứng dụng nhận được phản hồi đã ký này, bạn có thể sử dụng public key của cặp khóa RSA để xác minh chữ ký.
+    * Hình thức xác minh này không thực sự an toàn vì logic của ứng dụng có thể bị dịch ngược và thay đổi. 
+    * Bạn nên làm xáo trộn khóa công khai Google Play và mã thanh toán Google Play để kẻ tấn công khó có thể thiết kế lại các giao thức bảo mật và các thành phần khác. Tối thiểu bạn nên chạy một công cụ mã hóa như **Proguard**:
+    
+```
+-keep class com.android.vending.billing.**
+```
 
 # Test your app
 

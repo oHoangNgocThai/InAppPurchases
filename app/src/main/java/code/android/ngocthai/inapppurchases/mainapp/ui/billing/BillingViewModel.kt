@@ -1,6 +1,5 @@
 package code.android.ngocthai.inapppurchases.mainapp.ui.billing
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
 import android.arch.lifecycle.AndroidViewModel
@@ -12,7 +11,7 @@ import com.android.billingclient.api.*
 class BillingViewModel(application: Application) : AndroidViewModel(application),
         PurchasesUpdatedListener, BillingClientStateListener,
         ConsumeResponseListener, SkuDetailsResponseListener,
-        RewardResponseListener {
+        RewardResponseListener, AcknowledgePurchaseResponseListener {
 
     companion object {
         private val TAG = BillingViewModel::class.java.simpleName
@@ -22,23 +21,23 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
 
     private lateinit var mBillingClient: BillingClient
 
-    private val setupConnectionResponse = MutableLiveData<Int>()
-    private val billingServiceDisconnected = MutableLiveData<Boolean>()
+    private val mBillingServiceDisconnected = MutableLiveData<Boolean>()
+    private val mSetupBillingResult = MutableLiveData<BillingResult>()
 
     private val mSkuDetailList = hashSetOf<SkuDetails>()
     private val mSkuDetailsLiveData = MutableLiveData<List<SkuDetails>>()
-    private val mSkuDetailResponseCode = MutableLiveData<Int>()
+    private val mSkuDetailBillingResult = MutableLiveData<BillingResult>()
 
     private val mPurchasesLiveData = MutableLiveData<List<Purchase>>()
 
     private val mStatusReward = MutableLiveData<Boolean>()
-    private val mRewardResponseCode = MutableLiveData<Int>()
+    private val mRewardBillingResult = MutableLiveData<BillingResult>()
 
     private val mPurchasesUpdateLiveData = MutableLiveData<List<Purchase>>()
-    private val mPurchasesUpdateResponseCode = MutableLiveData<Int>()
+    private val mPurchaseUpdateBillingResult = MutableLiveData<BillingResult>()
 
     private val mConsumePurchaseToken = MutableLiveData<String>()
-    private val mConsumeResponseCode = MutableLiveData<Int>()
+    private val mConsumeBillingResult = MutableLiveData<BillingResult>()
 
     init {
         startDataSourceConnection(application)
@@ -46,84 +45,106 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onBillingServiceDisconnected() {
         Log.d(TAG, "onBillingServiceDisconnected()")
-        billingServiceDisconnected.value = true
+        mBillingServiceDisconnected.value = true
     }
 
-    override fun onBillingSetupFinished(@BillingClient.BillingResponse responseCode: Int) {
-        Log.d(TAG, "onBillingSetupFinished(): responseCode:$responseCode")
-        setupConnectionResponse.value = responseCode
+    override fun onBillingSetupFinished(billingResult: BillingResult?) {
+        Log.d(TAG, "onBillingSetupFinished(): responseCode:${billingResult?.responseCode} -- message:${billingResult?.debugMessage}")
+        mSetupBillingResult.value = billingResult
     }
 
-    @SuppressLint("SwitchIntDef")
-    override fun onConsumeResponse(@BillingClient.BillingResponse responseCode: Int, purchaseToken: String?) {
-        mConsumeResponseCode.value = responseCode
-        when (responseCode) {
-            BillingClient.BillingResponse.OK -> {
-                Log.d(TAG, "onPurchases Updated consumeAsync, purchases token removed: $purchaseToken")
-                if (purchaseToken != null) {
-                    mConsumePurchaseToken.value = purchaseToken
+    override fun onConsumeResponse(billingResult: BillingResult?, purchaseToken: String?) {
+        billingResult?.let {
+            val responseCode = it.responseCode
+            when (responseCode) {
+                BillingClient.BillingResponseCode.OK -> {
+                    Log.d(TAG, "onPurchases Updated consumeAsync, purchases token removed: $purchaseToken")
+                    if (purchaseToken != null) {
+                        mConsumePurchaseToken.value = purchaseToken
+                    }
+                    // Update to server
                 }
-                // Update to server
-            }
-            else -> {
-                Log.d(TAG, "onPurchases some troubles happened: $responseCode")
+                else -> {
+                    Log.d(TAG, "onPurchases some troubles happened: $responseCode")
+                    mConsumeBillingResult.value = it
+                }
             }
         }
     }
 
-    @SuppressLint("SwitchIntDef")
-    override fun onPurchasesUpdated(@BillingClient.BillingResponse responseCode: Int, purchases: MutableList<Purchase>?) {
-        mPurchasesUpdateResponseCode.value = responseCode
-        when (responseCode) {
-            BillingClient.BillingResponse.OK -> {
-                purchases?.let {
-                    mPurchasesUpdateLiveData.value = it.toList()
-                    if (allowMultiplePurchase) {
-                        it.first()?.let { purchases ->
-                            consumePurchasesAsync(purchases)
+    override fun onPurchasesUpdated(billingResult: BillingResult?, purchases: MutableList<Purchase>?) {
+        billingResult?.let {
+            val responseCode = it.responseCode
+            when (responseCode) {
+                BillingClient.BillingResponseCode.OK -> {
+                    Log.d(TAG, "onPurchasesUpdate(): Ok")
+                    purchases?.let { purchaseList ->
+                        mPurchasesUpdateLiveData.value = purchaseList.toList()
+                        if (allowMultiplePurchase) {
+                            // Consume if item allow multiple purchase
+                            purchaseList.first()?.let { purchases ->
+                                consumePurchasesAsync(purchases)
+                            }
+                        } else {
+                            // acknowledge purchase if item one-time purchase
+                            handlePurchase(purchaseList.first())
+                        }
+
+                        // Update purchase server
+                    }
+                }
+                BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                    Log.d(TAG, "onPurchasesUpdate(): ${it.debugMessage}")
+                    queryPurchasesAsync()
+                }
+                else -> {
+                    Log.d(TAG, "onPurchasesUpdate(): responseCode:$responseCode -- message:${it.debugMessage}")
+                    mPurchaseUpdateBillingResult.value = it
+                }
+            }
+        }
+    }
+
+    override fun onSkuDetailsResponse(billingResult: BillingResult?, skuDetailsList: MutableList<SkuDetails>?) {
+        billingResult?.let {
+            val responseCode = it.responseCode
+            when (responseCode) {
+                BillingClient.BillingResponseCode.OK -> {
+                    Log.d(TAG, "onSkuDetailResponse() success, list:$skuDetailsList")
+                    skuDetailsList?.let { skuDetails ->
+                        if (skuDetails.isNotEmpty()) {
+                            mSkuDetailList.addAll(skuDetails)
+                            mSkuDetailsLiveData.value = mSkuDetailList.toList()
                         }
                     }
-
-                    // Update purchase server
                 }
-            }
-            BillingClient.BillingResponse.ITEM_ALREADY_OWNED-> {
-                Log.d(TAG, "onPurchasesUpdate(): Item already owned")
-                queryPurchasesAsync()
-            }
-            else -> {
-                Log.d(TAG, "onPurchasesUpdate(): error code:$responseCode")
+                else -> {
+                    Log.d(TAG, "onSkuDetailResponse() fail, responseCode:$responseCode -- message:${it.debugMessage}")
+                    mSkuDetailBillingResult.value = it
+                }
             }
         }
     }
 
-    @SuppressLint("SwitchIntDef")
-    override fun onSkuDetailsResponse(@BillingClient.BillingResponse responseCode: Int, skuDetailsList: MutableList<SkuDetails>?) {
-        mSkuDetailResponseCode.value = responseCode
-        when(responseCode) {
-            BillingClient.BillingResponse.OK-> {
-                Log.d(TAG, "onSkuDetailResponse() success, list:$skuDetailsList")
-                skuDetailsList?.let {
-                    if (it.isNotEmpty()) {
-                        mSkuDetailList.addAll(it)
-                        mSkuDetailsLiveData.value = mSkuDetailList.toList()
-                    }
+    override fun onRewardResponse(billingResult: BillingResult?) {
+        billingResult?.let {
+            val responseCode = it.responseCode
+            when (responseCode) {
+                BillingClient.BillingResponseCode.OK -> {
+                    // Enable the reward product, or make
+                    // any necessary updates to the UI.
+                    mStatusReward.value = true
                 }
-            }
-            else -> {
-                Log.d(TAG, "onSkuDetailResponse() fail, responseCode:$responseCode")
+                else -> {
+                    Log.d(TAG, "onRewardResponse(): responseCode:${it.responseCode} -- message:${it.debugMessage}")
+                    mRewardBillingResult.value = it
+                }
             }
         }
     }
 
-    override fun onRewardResponse(responseCode: Int) {
-        Log.d(TAG, "onRewardResponse responseCode:$responseCode")
-        mRewardResponseCode.value = responseCode
-        if (responseCode == BillingClient.BillingResponse.OK) {
-            // Enable the reward product, or make
-            // any necessary updates to the UI.
-            mStatusReward.value = true
-        }
+    override fun onAcknowledgePurchaseResponse(billingResult: BillingResult?) {
+        // TODO
     }
 
     private fun startDataSourceConnection(application: Application) {
@@ -138,6 +159,7 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
 
     private fun instantiateAndConnectToPlayBillingService(application: Application) {
         mBillingClient = BillingClient.newBuilder(application)
+                .enablePendingPurchases()
                 .setListener(this)
                 .build()
         connectToPlayBillingService()
@@ -200,15 +222,41 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         mBillingClient.querySkuDetailsAsync(params, this)
     }
 
+    fun acknowledgePurchase(purchase: Purchase) {
+        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+
+            // Acknowledge the purchase if it hasn't already been acknowledged
+            if (!purchase.isAcknowledged) {
+                val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+                        .setPurchaseToken(purchase.purchaseToken)
+                        .build()
+                mBillingClient.acknowledgePurchase(acknowledgePurchaseParams, this)
+            }
+        }
+    }
+
+    fun handlePurchase(purchase: Purchase) {
+        if(purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+            // Grant the item to the user, and then acknowledge the purchase
+            acknowledgePurchase(purchase)
+        } else if(purchase.purchaseState == Purchase.PurchaseState.PENDING) {
+            // Here you can confirm to the user that they've started the pending
+            // purchase, and to complete it, they should follow instructions that
+            // are given to them. You can also choose to remind the user in the
+            // future to complete the purchase if you detect that it is still
+            // pending.
+        }
+    }
+
     fun clearInAppHistory() {
         mBillingClient.queryPurchases(BillingClient.SkuType.INAPP)?.purchasesList?.forEach {
-            mBillingClient.consumeAsync(it.purchaseToken, this)
+            consumePurchasesAsync(it)
         }
     }
 
     fun clearSubsHistory() {
         mBillingClient.queryPurchases(BillingClient.SkuType.SUBS)?.purchasesList?.forEach {
-            mBillingClient.consumeAsync(it.purchaseToken, this)
+            consumePurchasesAsync(it)
         }
     }
 
@@ -217,29 +265,37 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         clearSubsHistory()
     }
 
-    fun consumePurchasesAsync(purchase: Purchase) {
-        Log.d(TAG, "ConsumePurchasesAsync(): $purchase")
-        mBillingClient.consumeAsync(purchase.purchaseToken, this)
+    fun consumePurchasesAsync(purchase: Purchase?) {
+        Log.d(TAG, "consumePurchasesAsync(): $purchase")
+        if (purchase != null) {
+            val consumeParams = ConsumeParams.newBuilder()
+                    .setPurchaseToken(purchase.purchaseToken)
+                    .setDeveloperPayload(purchase.developerPayload)
+                    .build()
+            mBillingClient.consumeAsync(consumeParams, this)
+        } else {
+            Log.d(TAG, "consumePurchaseAsync(): purchase is null")
+        }
     }
 
-    fun getSetupConnectionResponse(): LiveData<Int> {
-        return setupConnectionResponse
+    fun getSetupBillingResult(): LiveData<BillingResult> {
+        return mSetupBillingResult
     }
 
     fun getSkuDetailLiveData(): LiveData<List<SkuDetails>> {
         return mSkuDetailsLiveData
     }
 
-    fun getSkuDetailResponseCode(): LiveData<Int> {
-        return mSkuDetailResponseCode
+    fun getSkuDetailBillingResult(): LiveData<BillingResult> {
+        return mSkuDetailBillingResult
     }
 
     fun getPurchasesLiveData(): LiveData<List<Purchase>> {
         return mPurchasesLiveData
     }
 
-    fun getRewardResponseCode(): LiveData<Int> {
-        return mRewardResponseCode
+    fun getRewardBillingResult(): LiveData<BillingResult> {
+        return mRewardBillingResult
     }
 
     fun getStatusReward(): LiveData<Boolean> {
@@ -250,16 +306,17 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         return mPurchasesUpdateLiveData
     }
 
-    fun getPurchasesUpdateResponseCode(): LiveData<Int> {
-        return mPurchasesUpdateResponseCode
+    fun getPurchasesUpdateBillingResult(): LiveData<BillingResult> {
+        return mPurchaseUpdateBillingResult
     }
+
 
     fun getConsumePurchaseToken(): LiveData<String> {
         return mConsumePurchaseToken
     }
 
-    fun getConsumeResponseCode(): LiveData<Int> {
-        return mConsumeResponseCode
+    fun getConsumeBillingResult(): LiveData<BillingResult> {
+        return mConsumeBillingResult
     }
 
     override fun onCleared() {
@@ -268,11 +325,18 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun isSubscriptionSupported(): Boolean {
-        val responseCode = mBillingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS)
-        if (responseCode != BillingClient.BillingResponse.OK) {
-            Log.d(TAG, "isSubscriptionSupported() got an error response: $responseCode")
+        val billingResult = mBillingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS)
+        return if (billingResult != null) {
+            val responseCode = billingResult.responseCode
+            if (responseCode == BillingClient.BillingResponseCode.OK) {
+                true
+            } else {
+                Log.d(TAG, "isSubscriptionSupported(): error with responseCode:$responseCode")
+                false
+            }
+        } else {
+            false
         }
-        return responseCode == BillingClient.BillingResponse.OK
     }
 
     object ItemSku {

@@ -39,6 +39,7 @@ dependencies {
     def room_version = "1.1.1"
     def lifecycle_version = "1.1.1"
     def coroutines_version = '1.0.1'
+    def billing_version = '2.0.0'
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:28.0.0'
@@ -63,7 +64,7 @@ dependencies {
     implementation 'com.android.support:recyclerview-v7:28.0.0'
 
     // Billing
-    implementation 'com.android.billingclient:billing:1.2'
+    implementation "com.android.billingclient:billing:$billing_version"
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
