@@ -133,6 +133,7 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
                 BillingClient.BillingResponseCode.OK -> {
                     // Enable the reward product, or make
                     // any necessary updates to the UI.
+                    Log.d(TAG, "onRewardResponse(): OK")
                     mStatusReward.value = true
                 }
                 else -> {
@@ -161,6 +162,8 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         mBillingClient = BillingClient.newBuilder(application)
                 .enablePendingPurchases()
                 .setListener(this)
+                .setChildDirected(BillingClient.ChildDirected.CHILD_DIRECTED)
+                .setUnderAgeOfConsent(BillingClient.UnderAgeOfConsent.UNDER_AGE_OF_CONSENT)
                 .build()
         connectToPlayBillingService()
     }
@@ -187,7 +190,11 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         val params = RewardLoadParams.Builder()
                 .setSkuDetails(skuDetail)
                 .build()
-        mBillingClient.loadRewardedSku(params, this)
+        mBillingClient.loadRewardedSku(params) {
+            if(it.responseCode == BillingClient.BillingResponseCode.OK) {
+                Log.d(TAG, "Reward success")
+            }
+        }
     }
 
     private fun launchBillingInApp(activity: Activity, skuDetails: SkuDetails) {
@@ -236,10 +243,10 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun handlePurchase(purchase: Purchase) {
-        if(purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
             // Grant the item to the user, and then acknowledge the purchase
             acknowledgePurchase(purchase)
-        } else if(purchase.purchaseState == Purchase.PurchaseState.PENDING) {
+        } else if (purchase.purchaseState == Purchase.PurchaseState.PENDING) {
             // Here you can confirm to the user that they've started the pending
             // purchase, and to complete it, they should follow instructions that
             // are given to them. You can also choose to remind the user in the
@@ -345,12 +352,13 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         const val ITEM_POWER = "item_power"
         const val REWARD_TEST = "android.test.reward"
         const val REWARD_GET_LIFE = "ads_get_life"
+        const val GIFT_CODE_500K = "giftcode_500k"
 
         const val PREMIUM_WEEKLY = "premium_weekly"
         const val PREMIUM_MONTHLY = "premium_monthly"
         const val PREMIUM_YEARLY = "premium_yearly"
 
-        val INAPP_SKUS = listOf(UPDATE_PREMIUM, ITEM_HEART, ITEM_POWER, REWARD_TEST, REWARD_GET_LIFE)
+        val INAPP_SKUS = listOf(UPDATE_PREMIUM, ITEM_HEART, ITEM_POWER, REWARD_TEST, REWARD_GET_LIFE, GIFT_CODE_500K)
         val SUBS_SKUS = listOf(PREMIUM_WEEKLY, PREMIUM_MONTHLY, PREMIUM_YEARLY)
     }
 }

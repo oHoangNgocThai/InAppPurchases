@@ -1,12 +1,12 @@
 # InAppPurchases
 
-# Overview
+## Overview
 
 * Google Play Billing là một dịch vụ bán nội dung số trên Android. Có thể vó dụ như những ứng dụng, nhạc, phim, sách, tin tức, ...
 
 * Inapp-Billing là một dịch vụ cho phép bán nội dung số trong ứng dụng Android. Ví dụ các item trong game như máu, coin, ...
 
-## In-app product types
+#### In-app product types
 
 Google Play Billing có thể sử dụng để bán một số loại sản phẩm như sau:
 
@@ -16,7 +16,7 @@ Google Play Billing có thể sử dụng để bán một số loại sản ph�
 
 * Subscription: Một sản phẩm yêu cầu một khoản phí định kì cho hình thức thanh toán của người dùng. Tạp chí trực tuyến, dịch vụ nghe nhạc hay xem truyền hình đều thuộc về loại này. Google Play Billing gọi nó thuộc dạng **SUBS**.
 
-## Purchase token and order IDs
+#### Purchase token and order IDs
 
 * Google Play Billing theo dõi các sản phẩm và giao dịch bằng cách sử dụng purchase token và order ID.
 
@@ -28,7 +28,7 @@ Google Play Billing có thể sử dụng để bán một số loại sản ph�
 
 * Đối với sản phẩm subscription, giao dịch mua lần đầu sẽ tạo purchase token và order ID cho đơn hàng. Mỗi kỳ thanh toán tiếp theo, purchase token vẫn giữ nguyên mà chỉ cấp mới Order ID cho đơn hàng. Nếu muốn nâng cấp, hạ xuống và đăng ký lại thì đều tạo ra ID và Token mới.
 
-## In-app product configuration
+#### In-app product configuration
 
 **Managed Product** và **Subscription** có một số tùy chọn cấu hình phổ biến trong Google Play Console quan trọng sau:
 
@@ -48,7 +48,7 @@ Một ứng dụng có thể có sẵn nhiều sản phẩm trong ứng dụng �
 
 Bạn cũng có thể tạo Promo code để người dùng sử dụng nhận one-time product miễn phí. Người dùng có thể nhập mã khuyến mại trong ứng dụng hoặc trong cửa hàng Google Play để nhận sản phầm one-time miễn phí.
 
-## Subscription product configuration
+#### Subscription product configuration
 
 * Billing period: Tần suất mà người dùng bị tính phí trong khi đăng ký của họ đang hoạt động. Bạn có thể lựa chọn hàng tuần, hàng tháng, 3 tháng, 6 tháng và hàng năm.
 
@@ -63,65 +63,33 @@ Bạn cũng có thể tạo Promo code để người dùng sử dụng nhận o
 Bạn có thể tham khảo thêm việc tạo subs tại [đây](https://support.google.com/googleplay/android-developer/answer/140504)
 
 
-## Step flow implement
+#### Step flow implement
 
 Để thực hiên việc thêm thanh toán vào trong ứng dụng của bạn sẽ trả qua một số bước cơ bản sau đây.
 
-#### Step 1: Create file Apk
+###### Step 1: Implement Google Play Console Library
+
+* Thực hiện connect với Google Play Billing, hiển thị các item product và thực hiện việc hiển thị Billing Flow.
+
+###### Step 2: Create file Apk
 
 * Build App phiên bản release, trong đó có chứa quyền BILLING.
 
-#### Step 2: Upload app to Google Play Console
+###### Step 3: Upload app to Google Play Console
 
 * Bạn cần có một tải khoản Google develop, sau đó đưa ứng dụng của bạn lên trên đó để quản lý, có thể đẩy bản release hoặc chỉ là test. 
 
 * Ứng dụng phải được publish qua các phiên bản Alpha, Beta hoặc là Internal test
 
-#### Step 3: Prepare product and subscription
+###### Step 4: Prepare product and subscription
 
 * Tạo các sản phẩm của **managed product**, **subscription**, **reward product** muốn đưa vào trong ứng dụng.
 
-* Hướng dẫn chi tiết tạo các sản phẩm ở [đây](https://developer.android.com/google/play/billing/billing_overview#next-steps)
-
-#### Step 4: Implement code
-
-* Thực hiện connect với Google Play Billing, hiển thị các item product và thực hiện việc hiển thị Billing Flow.
-
-#### Step 5: Test Play Billing
+###### Step 5: Test Play Billing
 
 * Thực hiện thêm tài khoản google test và test trên các thiết bị để tránh bị mất tiền khi test.
 
-
-# Upload app to Google Play Console
-
-## Build Signed Apk
-
-* Để build signed Apk, trước hết hãy chắc chắn bạn đang ở Build Variant là release với các cài đặt tương ứng cho phiên bản này.
-
-* Chắc rằng ứng dụng của bạn đã có quyền `<uses-permission android:name="com.android.vending.BILLING" />` để yêu cầu quyền thanh toán.
-
-* Để thực hiện hãy truy cập Build -> Generate Signed Bundle/APK.
-
-* Nếu là ứng dụng mới đưa lên chợ, chúng ta sẽ cần phải tạo 1 keystore mới. Lưu ý rằng khi đã tạo rồi mà để mất file này thì sẽ không thể update được ứng dụng cho phiên bản tiếp theo.
-
-![](https://cdn-images-1.medium.com/max/800/0*uDKK6bSyT9c-v6gh)
-
-*   Hoàn thiện keystore password rồi finish là đợi một lúc để Android Studio build.
-
-## Upload app
-
-* Sau khi đã có file Apk, việc tiếp theo là truy cập vào Google Play Console để setting upload ứng dụng. Để làm được việc này bạn cần phải mua lấy một tài khoản google develop. Có thể tham khảo ở [đây](https://support.magplus.com/hc/en-us/articles/204270878-Android-Setting-up-Your-Google-Play-Developer-Account)
-
-* Truy cập vào [https://play.google.com/apps/publish/](https://play.google.com/apps/publish/) -> **All Application** -> **Create Application** -> **Enter title and create**.
-
-* Hiện tại ứng dụng đang ở trạng thái draf, muốn test được chúng ta phải publish app. Mà không cần đẩy lên hẳn chợ, chỉ cần sử dụng Internal test track là đủ. Để vào đó cấu hình hãy truy cập đường dẫn **App Releases** -> **Internal test track** -> **Create Release** -> **Upload signed apk** -> **Save** - **Review**.  
-
-* Còn bước cuối cùng để publish app ở dạng test, bạn cần phải hoàn thành một số mục như **Store listing**, **Content rating**, **Pricing & distribution** thì mới có thể hiện lên được button **START ROLLOUT TO BETA**. Tiếp đó đợi để có thể được review và publish app.
-
-
-# Google Play Billing
-
-## Use the Google Play Billing Library
+## Step 1: Implement Google Play Billing Library
 
 ### Connect to Google Play Billing
 
@@ -395,7 +363,109 @@ Việc verify một giao dịch có thể được thực hiển ở cả server
 -keep class com.android.vending.billing.**
 ```
 
-# Test your app
+
+## Step 2: Create file Apk
+
+* Để build signed Apk, trước hết hãy chắc chắn bạn đang ở Build Variant là release với các cài đặt tương ứng cho phiên bản này.
+
+* Chắc rằng ứng dụng của bạn đã có quyền `<uses-permission android:name="com.android.vending.BILLING" />` để yêu cầu quyền thanh toán.
+
+* Các chức năng thanh toán được hoàn thành trước khi đẩy lên Google Play Console để dựa vào đó để test.
+
+* Để thực hiện hãy vào Build -> Generate Signed Bundle/APK.
+
+* Nếu là ứng dụng mới đưa lên chợ, chúng ta sẽ cần phải tạo 1 keystore mới. Lưu ý rằng khi đã tạo rồi mà để mất file này thì sẽ không thể update được ứng dụng cho phiên bản tiếp theo. Nếu đã có rồi thì bỏ qua bước này.
+
+![](https://cdn-images-1.medium.com/max/800/0*uDKK6bSyT9c-v6gh)
+
+*   Hoàn thiện keystore password rồi finish là đợi một lúc để Android Studio build.
+
+## Step 3: Upload app to Google Play Console
+
+* Sau khi đã có file Apk, việc tiếp theo là truy cập vào Google Play Console để setting upload ứng dụng. Để làm được việc này bạn cần phải mua lấy một tài khoản google develop. Có thể tham khảo ở [đây](https://support.magplus.com/hc/en-us/articles/204270878-Android-Setting-up-Your-Google-Play-Developer-Account)
+
+* Truy cập vào [https://play.google.com/apps/publish/](https://play.google.com/apps/publish/) -> **All Application** -> **Create Application** -> **Enter title and create**.
+
+* Hiện tại ứng dụng đang ở trạng thái draf, muốn test được chúng ta phải publish app. Mà không cần đẩy lên hẳn chợ, chỉ cần sử dụng Internal test track là đủ. Để vào đó cấu hình hãy truy cập đường dẫn **App Releases** -> **Internal test track** -> **Create Release** -> **Upload signed apk** -> **Save** - **Review**.  
+
+* Còn bước cuối cùng để publish app ở dạng test, bạn cần phải hoàn thành một số mục như **Store listing**, **Content rating**, **Pricing & distribution** thì mới có thể hiện lên được button **START ROLLOUT TO BETA**. Tiếp đó đợi để có thể được review và publish app.
+
+## Step 4: Prepare product and subscription
+
+### Add one-time product
+
+* Google Play Billing hỗ trợ các loại sản phẩm one-time sau:
+
+    * Các loại sản phẩm không tiêu thụ là các sản phẩm mang lại hiệu quả vĩnh viễn và mua 1 lần. Chẳng hạn như update premium.
+    * Các loại sản phẩm có thể tiêu thụ là các sản phẩm cung cấp lợi ích tạm thời và có thể được mua lại nhiều lần. Chẳng hạn như tiền trong trò chơi. Để cung cấp sản phẩm nhiều lần, bạn phải gửi yêu cầu **consume** lên server Google Play.
+    
+* Để chỉ ra rằng sản phẩm đã được tiêu thụ, hãy gọi phương thức **consumeAsync()** của BillingClient và sau đó nhận lại kết quả thông qua **ConsumeResponseListener**.
+
+* Vì yêu cầu tiêu thụ này đôi khi có thể không thành công, bạn phải kiểm tra lại ở backend server của mình để tránh việc không đồng bộ dữ liệu.
+
+* Tạo các item one-time product trên Google Play Console phải chú ý các Product ID không sửa đổi được và phải trùng với ID mà client dùng để lấy dữ liệu. Hướng dẫn tạo one-time product chi tiết tại [đây](https://support.google.com/googleplay/android-developer/answer/1153481).
+
+* Ngoài ra có thể tạo được mã khuyện mại **Promotion Code** để người dùng nhập và nhận được các phần thưởng, để tạo được làm theo hướng dẫn dưới [đây](https://support.google.com/googleplay/android-developer/answer/6321495?hl=en&ref_topic=7071529). 
+
+    * Bạn có thể phân phối thẻ với promo code tại sự kiện và người dùng nhập nó để mở khóa vật phẩm hoặc gì đó trong trò chơi. 
+    * Bạn có thể cung cấp promo code để chia sẻ chúng với bạn bè và người thân. 
+
+* Người dùng có thể đổi các mã khuyến mại theo các cách sau:
+
+    * Nhập thủ công mã trong ứng dụng Google Play Store.
+    * Nhấp vào mũi tên bên cạnh hình thức thanh toán trong màn hình mua hàng trên Google Play và đổi quà.
+
+* Khi tạo mã khuyến mại, có 2 sự lựa chọn là sử dụng trong app(sẽ phải có một managed product trước đó để sử dụng mã) hoặc là mã thanh toán bên ngoài của ứng dụng.
+
+### Add rewarded product
+
+* Một phương pháp mở khóa các sản phẩm và đem lại lợi ích cho người dùng là tạo ra các sản phẩm có thương hoặc các mặt hàng mà người sử dụng nhận được sau khi xem quảng cáo video. Thông qua cách này người dùng sẽ nhận được các vật phẩm mà không cần phải thanh toán trực tiếp. 
+
+* Rewarded product có dạng INAPP của SkuType, để đảm bảo người dùng có thể nhận nhiều lần phần thưởng, sản phẩm này phải được tiêu thụ(consume).
+
+* Để giúp tạo điều kiện tuân thủ các nghĩa vụ pháp lý liên quan đến trẻ em và người dùng chưa đủ tuổi, khi bạn tạo ứng dụng của mình hãy xem xét liệu cá yêu cầu quảng cáo có được coi là hướng đến trẻ em hay liệu chúng hướng đến người dùng chưa đủ tuổi chấp nhận. Nếu có hạn chế này thì cần sử dụng các phương thức **setChildDirected()** và **setUnderAgeOfConsent()** để thực hiện.
+
+```
+mBillingClient = BillingClient.newBuilder(application)
+    .enablePendingPurchases()
+    .setListener(this)
+    .setChildDirected(BillingClient.ChildDirected.CHILD_DIRECTED)
+    .setUnderAgeOfConsent(BillingClient.UnderAgeOfConsent.UNDER_AGE_OF_CONSENT)
+    .build()
+```
+
+* Để hiển thị các rewarded product, chúng ta cũng sử dụng như lấy các SkuDetails với dạng INAPP.
+
+* Để hiển thị video quảng cáo đối với một SkuDetails được chọn, chúng ta sử dụng phương thức **loadRewardedSku()**. Phương thức này sẽ cần truyền vào **RewardLoadParams** và trả về dữ liệu thông qua **RewardResponseListener**.
+
+* RewardResponseListener được thông báo khi video tải xong. Người dùng cũng được thông báo nếu video không khả dụng hoặc nếu có lỗi khác. Dựa vào responseCode để xử lý các trường hợp cần thiết.
+
+```
+if (skuDetails.isRewarded()) {
+    val params = RewardLoadParams.Builder()
+            .setSkuDetails(skuDetails)
+            .build()
+    mBillingClient.loadRewardedSku(params.build(),
+            object : RewardResponseListener {
+        override fun onRewardResponse(@BillingResponse responseCode : Int) {
+            if (responseCode == BillingResponse.OK) {
+                // Enable the reward product, or make
+                // any necessary updates to the UI.
+            }
+        }
+    })
+}
+```
+
+* Nếu thư viện Google Play Billing tải thành công video được liên kết với 1 sản phẩm có thưởng và RewardResponseListener nhận được mã phản hồi là OK, bạn có thể khởi chạy luồng thanh toán.
+
+* Để sử dụng item test reward nên sử dụng Product ID là **android.test.reward**, nó được tạo ra sẵn và bạn không phải tạo trên Google Play Console.
+
+### Add Subscription
+
+* Subscription được cấu hình trên Google Play Console. 
+
+## Step 5: Test Play Billing
 
 * Khi app được publish ở dạng **Internal test**, chỉ những email nào nằm trong danh sách mới tìm thấy và phải join vào trương trình test bằng cách vào Developer Console App Releases → Alpha → Manage testers → Tìm Opt-in URL và gửi email test để họ chấp nhận.
 

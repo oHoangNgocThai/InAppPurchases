@@ -10,8 +10,6 @@ import code.android.ngocthai.inapppurchases.R
 import code.android.ngocthai.inapppurchases.base.extension.nonNullSingle
 import code.android.ngocthai.inapppurchases.base.extension.observe
 import code.android.ngocthai.inapppurchases.base.ui.BaseActivity
-import code.android.ngocthai.inapppurchases.mainapp.itemproduct.ProductAdapter
-import code.android.ngocthai.inapppurchases.mainapp.util.BillingResponseCode
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.SkuDetails
@@ -141,7 +139,7 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
             }
             BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> {
                 Log.d(TAG, "handleConnection(): responseCode:${billingResult.responseCode}--message:${billingResult.debugMessage}")
-                Toast.makeText(applicationContext, BillingResponseCode.BILLING_UNAVAILABLE.message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, billingResult.debugMessage, Toast.LENGTH_SHORT).show()
             }
         }
     }

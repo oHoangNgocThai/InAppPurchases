@@ -1,4 +1,4 @@
-package code.android.ngocthai.inapppurchases.mainapp.itemproduct
+package code.android.ngocthai.inapppurchases.mainapp.ui.billing
 
 import android.view.LayoutInflater
 import android.view.View
