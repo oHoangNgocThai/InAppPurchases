@@ -461,12 +461,41 @@ if (skuDetails.isRewarded()) {
 
 * Để sử dụng item test reward nên sử dụng Product ID là **android.test.reward**, nó được tạo ra sẵn và bạn không phải tạo trên Google Play Console.
 
-### Add Subscription
+### [Add Subscription](https://developer.android.com/google/play/billing/billing_subscriptions)
 
-* Subscription được cấu hình trên Google Play Console. 
+* Subscription được cấu hình trên Google Play Console, có một vài đặc điểm đã được đề cập ở phần overview như là thời hạn thanh toán, thời gian dùng thử, thời gian gia hạn,...
+
+* Bạn cũng nên bật real-time developer notification để kịp thời nhận thông báo về những thay đổi của các subscription. Xem thêm tại [đây](https://developer.android.com/google/play/billing/realtime_developer_notifications.html)
+
+* Có một số trường hợp sử dụng subs mà bạn nên cung cấp các giải pháp trong Google Play Billing của mình: 
+
+    * Xử lý các trạng thái liên quan đến đăng ký bằng thông báo real-time developer
+    * Tạm dừng đăng ký
+    * Cho phép người dùng đăng ký thủ công khi bị hủy trước khi thời gian đăng ký kết thúc.
+    * Cho phép người dùng có thể upgrade hoặc downgrade subs
+    * Hoàn lại chi phí thuê bao
+    * Thu hồi một thuê bao
+    * Hủy đăng ký
+    * Khôi phục đăng ký
+    * Trì hoãn thanh toán cho người dùng để đăng ký miễn phí trong một khoảng thời gian nhất định
+    * Lấy lại một khách hàng.
+    
+* Xử lý các trạng thái liên quan đến đăng ký bằng real-time develop notification xem thêm tại [đây](https://developer.android.com/google/play/billing/billing_subscriptions#Handle-states)
+
+* Bạn có thể xử lý cho người dùng tạm dừng đăng ký trong một khoảng thời gian nhất định. Khi bật tùy chọn tạm dừng thì nó sẽ xuấ thiện ở cả trong lúc đăng ký và luồng hủy.
+
+* Bạn có thể cho phép người dùng đăng ký lại thuê bao ngay cả khi đăng ký chưa hết hạn bằng cách sử dụng cùng 1 Product ID trong luồng mua sản phẩm.
+
+* Google Play không cung cấp follow cho việc hoàn tiền, thay vào đó người dùng sẽ yêu cầu hoàn tiền trực tiếp từ bạn.
+
+* Đối với việc thu hồi thuê bao, hủy đăng ký, khôi phục đăng ký có thể sử dụng [Google Play Developer API](https://developer.android.com/google/play/developer-api.html). Để thực hiện các thao tác cần gửi request lên các API có sẵn được miêu tả ở [Purchases.subscription](https://developers.google.com/android-publisher/api-ref/purchases/subscriptions)
 
 ## Step 5: Test Play Billing
 
+* Publish ứng dụng của bạn ở dạng open track hoặc là close track trên Google Play. Có thể mất vài giờ để hoàn thiện việc upload và review trước khi bạn có thể test được.
+
 * Khi app được publish ở dạng **Internal test**, chỉ những email nào nằm trong danh sách mới tìm thấy và phải join vào trương trình test bằng cách vào Developer Console App Releases → Alpha → Manage testers → Tìm Opt-in URL và gửi email test để họ chấp nhận.
+
+* Xem thêm các bước test ở [Test Play Billing](https://developer.android.com/google/play/billing/billing_testing)
 
 
