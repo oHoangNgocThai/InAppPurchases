@@ -10,10 +10,15 @@ import code.android.ngocthai.inapppurchases.R
 import code.android.ngocthai.inapppurchases.base.extension.nonNullSingle
 import code.android.ngocthai.inapppurchases.base.extension.observe
 import code.android.ngocthai.inapppurchases.base.ui.BaseActivity
+import code.android.ngocthai.inapppurchases.mainapp.util.AppConfig
+import code.android.ngocthai.inapppurchases.mainapp.util.SharedPrefs
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.SkuDetails
-import kotlinx.android.synthetic.main.activity_product.*
+import kotlinx.android.synthetic.main.activity_billing.*
+import kotlinx.android.synthetic.main.activity_product.buttonClearHistory
+import kotlinx.android.synthetic.main.activity_product.recyclerProduct
+import kotlinx.android.synthetic.main.activity_product.swipeRefreshProduct
 
 class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
 
@@ -31,8 +36,6 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
     override fun initComponent(savedInstanceState: Bundle?) {
         mViewModel = ViewModelProviders.of(this).get(BillingViewModel::class.java)
 
-        mViewModel.allowMultiplePurchase = true
-
         recyclerProduct.apply {
             adapter = mProductAdapter
             layoutManager = LinearLayoutManager(applicationContext, RecyclerView.VERTICAL, false)
@@ -45,6 +48,20 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
         swipeRefreshProduct.setOnRefreshListener {
             mViewModel.querySkyDetailsAsync(BillingClient.SkuType.INAPP, BillingViewModel.ItemSku.INAPP_SKUS)
             mViewModel.querySkyDetailsAsync(BillingClient.SkuType.SUBS, BillingViewModel.ItemSku.SUBS_SKUS)
+        }
+
+        // Switch allow multiple
+        val isAllow = SharedPrefs.instance.get(AppConfig.MULTIPLE_PURCHASE_ALLOW, Boolean::class.java, false)
+        switchConsume.isChecked = isAllow
+
+        switchConsume.setOnCheckedChangeListener { buttonView, isChecked ->
+            mViewModel.allowMultiplePurchase = isChecked
+            if (isChecked) {
+                Toast.makeText(applicationContext, "Multiple purchase allow", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(applicationContext, "Multiple purchase disable", Toast.LENGTH_SHORT).show()
+            }
+            SharedPrefs.instance.put(AppConfig.MULTIPLE_PURCHASE_ALLOW, isChecked)
         }
 
         mViewModel.getSetupBillingResult()
@@ -83,6 +100,7 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
         mViewModel.getPurchasesUpdateLiveData()
                 .nonNullSingle()
                 .observe(this) {
+                    Toast.makeText(applicationContext, "Billing success", Toast.LENGTH_LONG).show()
                     Log.d(TAG, "getPurchasesUpdateLiveData(): $it")
                 }
 
@@ -145,17 +163,22 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
     }
 
     private fun handlePurchasesUpdate(billingResult: BillingResult) {
+        Toast.makeText(applicationContext, "Billing error: errorCode:${billingResult.responseCode} -- ${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.USER_CANCELED -> {
-                Toast.makeText(applicationContext, "handlePurchasesUpdate(): responseCode:${billingResult.responseCode} -- message:${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
+                Toast.makeText(applicationContext, "handlePurchasesUpdate(): ${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
             }
             BillingClient.BillingResponseCode.DEVELOPER_ERROR -> {
-                Toast.makeText(applicationContext, "handlePurchasesUpdate(): responseCode:${billingResult.responseCode} -- message:${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
+                Toast.makeText(applicationContext, "handlePurchasesUpdate(): ${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
+            }
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                Toast.makeText(applicationContext, "handlePurchasesUpdate(): ${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     private fun handleRewardResponse(billingResult: BillingResult) {
+        Toast.makeText(applicationContext, "Reward error: errorCode:${billingResult.responseCode} -- ${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
         when (billingResult.responseCode) {
 
         }
