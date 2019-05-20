@@ -146,7 +146,7 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
     }
 
     private fun handleConsumePurchase(billingResult: BillingResult) {
-
+        Toast.makeText(applicationContext, "Consume purchase: ${billingResult.debugMessage}", Toast.LENGTH_SHORT).show()
     }
 
     private fun handleConnection(billingResult: BillingResult) {
