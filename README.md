@@ -89,6 +89,30 @@ Bạn có thể tham khảo thêm việc tạo subs tại [đây](https://suppor
 
 * Thực hiện thêm tài khoản google test và test trên các thiết bị để tránh bị mất tiền khi test.
 
+#### Google Play In-App Billing Flow
+
+* Thông thường flow của việc thanh toán thông thường như sau:
+
+    * Bước 1: Lấy thông tin product trên Google Store
+    * Bước 2: Thực hiện thanh toán với **payload** là một random string
+    * Bước 3: Kiểm tra chuỗi **payload** được gửi lại xem có đúng hay không
+    * Bước 4: Hoàn thành thanh toán
+    
+* Nhìn thì có vẻ là không có vấn đề gì xảy ra, nhưng nếu như dữ liệu và payload được giả mạo và gửi về cho client xác nhận, vậy là folow này sẽ không an toàn. Chính vì vậy phải sinh ra thêm một bước kiểm tra lại kết quả thanh toán trả về.
+
+    * Bước 1: Lấy thông tin product trên Google Store
+    * Bước 2: Thực hiện thanh toán với **payload** là một random string
+    * Bước 3: Kiểm tra chuỗi **payload** được gửi lại xem có đúng hay không
+    * Bước 4: Kiểm tra thanh toán với Google Play API với backend server của mình
+    * Bước 5: Hoàn thành thanh toán
+    
+<img src="http://drive.google.com/uc?export=view&id=1GWPBLH3hypC0-5uJpCxTo3oGM5QPNv52" alt="Google Logo">
+
+* Trong một số trường hợp như những ứng dụng ngân hàng hoặc là các ví điện tử giả sử như Momo, VNPay, ... thì việc kiểm tra thanh toán còn được kiểm tra tính hợp lệ của phiên bản hệ điều hành được cài vào máy. Nếu như máy đã bị root thì sẽ kiểm tra được và không cho phép thực hiện một vài thao tác quan trọng liên quan đến thanh toán để tránh rủi ro. Việc kiểm tra thông qua [Google Safety Net](https://developer.android.com/training/safetynet) service để kiểm tra được chữ ký đã được Google phát hành theo từng phiên bản hệ điều hành riêng.
+
+<img src="http://drive.google.com/uc?export=view&id=1sLnGIHWDVP0CZNOUC-LfggGjDZzg04x5" alt="Google Logo">
+
+
 ## Step 1: Implement Google Play Billing Library
 
 ### Connect to Google Play Billing
@@ -363,7 +387,6 @@ Việc verify một giao dịch có thể được thực hiển ở cả server
 -keep class com.android.vending.billing.**
 ```
 
-
 ## Step 2: Create file Apk
 
 * Để build signed Apk, trước hết hãy chắc chắn bạn đang ở Build Variant là release với các cài đặt tương ứng cho phiên bản này.
@@ -497,5 +520,3 @@ if (skuDetails.isRewarded()) {
 * Khi app được publish ở dạng **Internal test**, chỉ những email nào nằm trong danh sách mới tìm thấy và phải join vào trương trình test bằng cách vào Developer Console App Releases → Alpha → Manage testers → Tìm Opt-in URL và gửi email test để họ chấp nhận.
 
 * Xem thêm các bước test ở [Test Play Billing](https://developer.android.com/google/play/billing/billing_testing)
-
-
