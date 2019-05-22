@@ -20,7 +20,7 @@ import kotlinx.android.synthetic.main.activity_product.buttonClearHistory
 import kotlinx.android.synthetic.main.activity_product.recyclerProduct
 import kotlinx.android.synthetic.main.activity_product.swipeRefreshProduct
 
-class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
+class BillingActivity : BaseActivity() {
 
     companion object {
         private val TAG = BillingActivity::class.java.simpleName
@@ -28,7 +28,7 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
 
     private lateinit var mViewModel: BillingViewModel
 
-    private val mProductAdapter = ProductAdapter(this)
+//    private val mProductAdapter = ProductAdapter(this)
 
     override val layoutResource: Int
         get() = R.layout.activity_billing
@@ -36,10 +36,10 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
     override fun initComponent(savedInstanceState: Bundle?) {
         mViewModel = ViewModelProviders.of(this).get(BillingViewModel::class.java)
 
-        recyclerProduct.apply {
-            adapter = mProductAdapter
-            layoutManager = LinearLayoutManager(applicationContext, RecyclerView.VERTICAL, false)
-        }
+//        recyclerProduct.apply {
+//            adapter = mProductAdapter
+//            layoutManager = LinearLayoutManager(applicationContext, RecyclerView.VERTICAL, false)
+//        }
 
         buttonClearHistory.setOnClickListener {
             mViewModel.clearHistory()
@@ -77,7 +77,7 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
                 .observe(this) {
                     swipeRefreshProduct.isRefreshing = false
                     Log.d(TAG, "getSkuDetailLiveData(): $it")
-                    mProductAdapter.updateData(it)
+//                    mProductAdapter.updateData(it)
                 }
 
         mViewModel.getSkuDetailBillingResult()
@@ -141,9 +141,9 @@ class BillingActivity : BaseActivity(), ProductAdapter.ProductListener {
 
     }
 
-    override fun onItemClick(item: SkuDetails) {
-        mViewModel.launchBillingFlow(this, item)
-    }
+//    override fun onItemClick(item: SkuDetails) {
+//        mViewModel.launchBillingFlow(this, item)
+//    }
 
     private fun handleConsumePurchase(billingResult: BillingResult) {
         Toast.makeText(applicationContext, "Consume purchase: ${billingResult.debugMessage}", Toast.LENGTH_SHORT).show()

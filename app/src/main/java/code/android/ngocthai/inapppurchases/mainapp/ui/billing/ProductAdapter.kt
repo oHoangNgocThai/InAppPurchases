@@ -12,8 +12,10 @@ class ProductAdapter(
         private val listener: ProductListener
 ) : DataBoundAdapter<SkuDetails>() {
 
-    interface ProductListener{
+    interface ProductListener {
         fun onItemClick(item: SkuDetails)
+
+        fun onBuyClick(item: SkuDetails)
     }
 
     override fun inflateView(parent: ViewGroup): View {
@@ -21,7 +23,12 @@ class ProductAdapter(
     }
 
     override fun bind(rootView: View, item: SkuDetails) {
-        rootView.textTitle.text = "${item.title} -- ${item.price}"
+        rootView.textTitle.text = item.description
+        rootView.textPrice.text = item.price
+
+        rootView.setOnClickListener {
+            listener.onBuyClick(item)
+        }
 
         rootView.setOnClickListener {
             listener.onItemClick(item)
