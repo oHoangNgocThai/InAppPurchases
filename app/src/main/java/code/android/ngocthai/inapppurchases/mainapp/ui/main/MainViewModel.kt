@@ -1,62 +1,38 @@
 package code.android.ngocthai.inapppurchases.mainapp.ui.main
 
 import android.app.Application
+import android.arch.lifecycle.AndroidViewModel
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
-import android.util.Log
-import com.android.billingclient.api.BillingClient
-import com.android.billingclient.api.BillingResult
-import com.android.billingclient.api.Purchase
-import com.android.billingclient.api.SkuDetails
+import code.android.ngocthai.inapppurchases.base.entity.AugmentedSkuDetails
+import code.android.ngocthai.inapppurchases.base.repository.BillingRepository
 
-class MainViewModel(application: Application) : BaseBillingViewModel(application) {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         private val TAG = MainViewModel::class.java.simpleName
     }
 
-    private val mSkuDetailsEntity = hashSetOf<SkuDetails>()
-    private val mSkuDetailsLiveData = MutableLiveData<List<SkuDetails>>()
-    private val mSkuDetailsError = MutableLiveData<BillingResult>()
+    private val mBillingRepository: BillingRepository
 
-    override val skuListInApp: List<String>
-        get() = PurchaseConfig.INAPP_SKUS
+    private val mAugmentedSkuDetails = hashSetOf<AugmentedSkuDetails>()
+    private var mAugmentedSkuDetailsLiveData = MutableLiveData<List<AugmentedSkuDetails>>()
 
-    override val skuListSubs: List<String>
-        get() = arrayListOf()
+    init {
+        mBillingRepository = BillingRepository.getInstance(application)
 
-    override fun billingServiceDisconnected() {
-        Log.d(TAG, "billingServiceDisconnected()")
+        // setup SkuList
+        mBillingRepository.mSkuListInApp = BillingRepository.PurchaseConfig.INAPP_SKUS
+        mBillingRepository.mSkuListSubs = BillingRepository.PurchaseConfig.SUBS_SKUS
+
+        // Start connection
+        mBillingRepository.startDataSourceConnection()
+
+        mAugmentedSkuDetailsLiveData = mBillingRepository.getAugmentedSkuDetails()
     }
 
-    override fun billingSetupFinished(billingResult: BillingResult?) {
-        Log.d(TAG, "billingSetupFinished(): result:$billingResult")
+    fun getSkuDetails(): LiveData<List<AugmentedSkuDetails>> {
+        return mAugmentedSkuDetailsLiveData
     }
 
-    override fun purchasesUpdate(billingResult: BillingResult?, purchases: MutableList<Purchase>?) {
-        Log.d(TAG, "purchasesUpdate(): result:$billingResult -- purchases:$purchases")
-    }
-
-    override fun skuDetailsResponse(billingResult: BillingResult?, skuDetailsList: MutableList<SkuDetails>?) {
-        Log.d(TAG, "skuDetailsResponse(): result:$billingResult --- skuDetailsList: $skuDetailsList")
-        billingResult?.let {
-            when (billingResult.responseCode) {
-                BillingClient.BillingResponseCode.OK -> {
-                    Log.d(TAG, "skuDetailsResponse(): ${billingResult?.debugMessage}")
-                    skuDetailsList?.let {
-                        mSkuDetailsEntity.addAll(it)
-                        mSkuDetailsLiveData.value = mSkuDetailsEntity.toList()
-                    }
-                }
-                else -> {
-                    Log.d(TAG, "skuDetailsResponse(): ${billingResult.debugMessage}")
-                    mSkuDetailsError.value = billingResult
-                }
-            }
-        }
-    }
-
-    fun getSkuDetailsLiveData(): LiveData<List<SkuDetails>> = mSkuDetailsLiveData
-
-    fun getSkuDetailError(): LiveData<BillingResult> = mSkuDetailsError
 }
