@@ -3,7 +3,7 @@ package code.android.ngocthai.inapppurchases.base.entity
 import android.arch.persistence.room.Entity
 import android.arch.persistence.room.PrimaryKey
 
-@Entity(tableName = "skudetails")
+@Entity
 data class AugmentedSkuDetails(
 
         val canPurchase: Boolean, /* Not in SkuDetails; it's the augmentation */

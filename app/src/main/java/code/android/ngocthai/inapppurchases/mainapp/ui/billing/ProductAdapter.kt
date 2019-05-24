@@ -1,12 +1,12 @@
 package code.android.ngocthai.inapppurchases.mainapp.ui.billing
 
+import android.support.v4.content.ContextCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import code.android.ngocthai.inapppurchases.R
 import code.android.ngocthai.inapppurchases.base.entity.AugmentedSkuDetails
 import code.android.ngocthai.inapppurchases.base.ui.common.DataBoundAdapter
-import com.android.billingclient.api.SkuDetails
 import kotlinx.android.synthetic.main.item_product.view.*
 
 class ProductAdapter(
@@ -14,8 +14,6 @@ class ProductAdapter(
 ) : DataBoundAdapter<AugmentedSkuDetails>() {
 
     interface ProductListener {
-        fun onItemClick(item: AugmentedSkuDetails)
-
         fun onBuyClick(item: AugmentedSkuDetails)
     }
 
@@ -27,12 +25,14 @@ class ProductAdapter(
         rootView.textTitle.text = item.description
         rootView.textPrice.text = item.price
 
-        rootView.setOnClickListener {
-            listener.onBuyClick(item)
+        if (item.canPurchase) {
+            rootView.buttonBuy.setBackgroundColor(ContextCompat.getColor(rootView.context, R.color.colorButtonBuyActive))
+        } else {
+            rootView.buttonBuy.setBackgroundColor(ContextCompat.getColor(rootView.context, R.color.colorButtonBuyInActive))
         }
 
-        rootView.setOnClickListener {
-            listener.onItemClick(item)
+        rootView.buttonBuy.setOnClickListener {
+            listener.onBuyClick(item)
         }
     }
 
@@ -40,5 +40,9 @@ class ProductAdapter(
         items.clear()
         items.addAll(newList)
         notifyDataSetChanged()
+    }
+
+    fun getAllData(): MutableList<AugmentedSkuDetails> {
+        return items
     }
 }

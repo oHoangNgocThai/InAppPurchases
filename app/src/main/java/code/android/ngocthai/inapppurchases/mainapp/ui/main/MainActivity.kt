@@ -1,19 +1,24 @@
 package code.android.ngocthai.inapppurchases.mainapp.ui.main
 
 import android.arch.lifecycle.ViewModelProviders
+import android.content.Intent
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.Toast
 import code.android.ngocthai.inapppurchases.R
 import code.android.ngocthai.inapppurchases.base.entity.AugmentedSkuDetails
 import code.android.ngocthai.inapppurchases.base.extension.nonNullSingle
 import code.android.ngocthai.inapppurchases.base.extension.observe
 import code.android.ngocthai.inapppurchases.base.ui.BaseActivity
 import code.android.ngocthai.inapppurchases.mainapp.ui.billing.ProductAdapter
+import code.android.ngocthai.inapppurchases.mainapp.ui.history.HistoryActivity
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : BaseActivity() , ProductAdapter.ProductListener{
+class MainActivity : BaseActivity(), ProductAdapter.ProductListener {
 
     companion object {
         private val TAG = MainActivity::class.java.simpleName
@@ -38,18 +43,55 @@ class MainActivity : BaseActivity() , ProductAdapter.ProductListener{
                 .nonNullSingle()
                 .observe(this) {
                     Log.d(TAG, "AugmentedSkuDetails: $it")
-
                     mProductAdapter.updateData(it)
                 }
 
+        mViewModel.getNonConsumePurchaseToken()
+                .nonNullSingle()
+                .observe(this) {
+                    handleNonConsumePurchaseToken(it)
+                }
+    }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        when (item?.itemId) {
+            R.id.menu_history -> {
+                startActivity(Intent(this, HistoryActivity::class.java))
+            }
+        }
+        return true
     }
 
     override fun onBuyClick(item: AugmentedSkuDetails) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        if (item.canPurchase) {
+            mViewModel.launchBilling(this, item)
+        } else {
+            Toast.makeText(applicationContext, "Your already item", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    override fun onItemClick(item: AugmentedSkuDetails) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+
+    fun handleNonConsumePurchaseToken(token: String) {
+        Log.d(TAG, "Non consume token: $token")
+        val augmentedSkuDetails = mProductAdapter.getAllData()
+        val index = augmentedSkuDetails.indexOfFirst {
+            it.sku == token
+        }
+
+//        if (index != -1) {
+//            val oldItem = augmentedSkuDetails[index]
+//            val newItem = oldItem.apply {
+//                AugmentedSkuDetails(false, sku, type, price, title, description, originalJson)
+//            }
+//
+//            augmentedSkuDetails[index] = newItem
+//        }
+//
+//        mProductAdapter.updateData(augmentedSkuDetails)
     }
 }

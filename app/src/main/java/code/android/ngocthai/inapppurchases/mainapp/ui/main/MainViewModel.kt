@@ -1,5 +1,6 @@
 package code.android.ngocthai.inapppurchases.mainapp.ui.main
 
+import android.app.Activity
 import android.app.Application
 import android.arch.lifecycle.AndroidViewModel
 import android.arch.lifecycle.LiveData
@@ -15,8 +16,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val mBillingRepository: BillingRepository
 
-    private val mAugmentedSkuDetails = hashSetOf<AugmentedSkuDetails>()
-    private var mAugmentedSkuDetailsLiveData = MutableLiveData<List<AugmentedSkuDetails>>()
+    private var mAugmentedSkuDetailsLiveData: LiveData<List<AugmentedSkuDetails>>
+
+    private var mConsumePurchaseToken = MutableLiveData<String>()
+    private var mNonConsumePurchaseToken = MutableLiveData<String>()
 
     init {
         mBillingRepository = BillingRepository.getInstance(application)
@@ -29,10 +32,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         mBillingRepository.startDataSourceConnection()
 
         mAugmentedSkuDetailsLiveData = mBillingRepository.getAugmentedSkuDetails()
+        mConsumePurchaseToken = mBillingRepository.getConsumePurchaseToken()
+        mNonConsumePurchaseToken = mBillingRepository.getNonConsumePurchaseToken()
     }
 
-    fun getSkuDetails(): LiveData<List<AugmentedSkuDetails>> {
-        return mAugmentedSkuDetailsLiveData
+    fun launchBilling(activity: Activity, augmentedSkuDetails: AugmentedSkuDetails) {
+        mBillingRepository.launchBillingFlow(activity, augmentedSkuDetails)
     }
+
+    fun getSkuDetails(): LiveData<List<AugmentedSkuDetails>> = mAugmentedSkuDetailsLiveData
+
+    fun getConsumePurchaseToken(): LiveData<String> = mConsumePurchaseToken
+
+    fun getNonConsumePurchaseToken(): LiveData<String> = mNonConsumePurchaseToken
 
 }
