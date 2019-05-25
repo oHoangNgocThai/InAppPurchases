@@ -29,6 +29,8 @@ class BillingRepository private constructor(
         mLocalCacheBillingClient.skuDetailsDao().getSkuDetails()
     }
 
+    private val mPurchaseHistoryRecord = MutableLiveData<List<PurchaseHistoryRecord>>()
+
     var mSkuListInApp = listOf<String>()
     var mSkuListSubs = listOf<String>()
 
@@ -111,11 +113,8 @@ class BillingRepository private constructor(
         billingResult?.let {
             when (it.responseCode) {
                 BillingClient.BillingResponseCode.OK -> {
-                    purchaseHistoryRecordList?.let {
-                        it.forEach { purchaseHistoryRecod ->
-                            // TODO: Handle
-                            Log.d(TAG, "history item: $purchaseHistoryRecod")
-                        }
+                    purchaseHistoryRecordList?.let { purchaseHistory ->
+                        mPurchaseHistoryRecord.value = purchaseHistory
                     }
                 }
                 else -> {
@@ -285,6 +284,10 @@ class BillingRepository private constructor(
                     }
                 }
             }
+
+            CoroutineScope(Job() + Dispatchers.IO).launch {
+                mLocalCacheBillingClient.skuDetailsDao().update(purchase.sku, false)
+            }
         }
     }
 
@@ -318,6 +321,8 @@ class BillingRepository private constructor(
     fun getNonConsumePurchaseToken(): MutableLiveData<String> = mNonConsumePurchaseToken
 
     fun getAugmentedSkuDetails(): LiveData<List<AugmentedSkuDetails>> = mAugmentedSkuDetails
+
+    fun getPurchaseHistoryRecord(): LiveData<List<PurchaseHistoryRecord>> = mPurchaseHistoryRecord
 
     companion object {
         private val TAG = BillingRepository::class.java.simpleName

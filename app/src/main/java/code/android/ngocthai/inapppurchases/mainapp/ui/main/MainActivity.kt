@@ -45,12 +45,6 @@ class MainActivity : BaseActivity(), ProductAdapter.ProductListener {
                     Log.d(TAG, "AugmentedSkuDetails: $it")
                     mProductAdapter.updateData(it)
                 }
-
-        mViewModel.getNonConsumePurchaseToken()
-                .nonNullSingle()
-                .observe(this) {
-                    handleNonConsumePurchaseToken(it)
-                }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -73,25 +67,5 @@ class MainActivity : BaseActivity(), ProductAdapter.ProductListener {
         } else {
             Toast.makeText(applicationContext, "Your already item", Toast.LENGTH_SHORT).show()
         }
-    }
-
-
-    fun handleNonConsumePurchaseToken(token: String) {
-        Log.d(TAG, "Non consume token: $token")
-        val augmentedSkuDetails = mProductAdapter.getAllData()
-        val index = augmentedSkuDetails.indexOfFirst {
-            it.sku == token
-        }
-
-//        if (index != -1) {
-//            val oldItem = augmentedSkuDetails[index]
-//            val newItem = oldItem.apply {
-//                AugmentedSkuDetails(false, sku, type, price, title, description, originalJson)
-//            }
-//
-//            augmentedSkuDetails[index] = newItem
-//        }
-//
-//        mProductAdapter.updateData(augmentedSkuDetails)
     }
 }
