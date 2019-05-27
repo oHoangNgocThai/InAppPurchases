@@ -24,12 +24,15 @@ class BillingRepository private constructor(
 
     private val mAugmentedSkuDetails: LiveData<List<AugmentedSkuDetails>> by lazy {
         if (mLocalCacheBillingClient == null) {
-            mLocalCacheBillingClient = LocalBillingDb.getInstance(application)
+            mLocalCacheBillingClient = LocalBillingDb.getInstance(application.applicationContext)
         }
         mLocalCacheBillingClient.skuDetailsDao().getSkuDetails()
     }
 
+    private val mLoadRewardResponse = MutableLiveData<BillingResult>()
+
     private val mPurchaseHistoryRecord = MutableLiveData<List<PurchaseHistoryRecord>>()
+    private val mPurchaseHistoryRecordEntity = hashSetOf<PurchaseHistoryRecord>()
 
     var mSkuListInApp = listOf<String>()
     var mSkuListSubs = listOf<String>()
@@ -113,8 +116,10 @@ class BillingRepository private constructor(
         billingResult?.let {
             when (it.responseCode) {
                 BillingClient.BillingResponseCode.OK -> {
+                    Log.d(TAG, "onPurchaseHistoryResponse(): OK - result:$purchaseHistoryRecordList")
                     purchaseHistoryRecordList?.let { purchaseHistory ->
-                        mPurchaseHistoryRecord.value = purchaseHistory
+                        mPurchaseHistoryRecordEntity.addAll(purchaseHistory)
+                        mPurchaseHistoryRecord.value = mPurchaseHistoryRecordEntity.toList()
                     }
                 }
                 else -> {
@@ -172,6 +177,7 @@ class BillingRepository private constructor(
     }
 
     fun queryPurchaseHistoryAsync() {
+        mPurchaseHistoryRecordEntity.clear()
         mBillingClient.queryPurchaseHistoryAsync(BillingClient.SkuType.INAPP, this)
         mBillingClient.queryPurchaseHistoryAsync(BillingClient.SkuType.SUBS, this)
     }
@@ -207,9 +213,7 @@ class BillingRepository private constructor(
                 .setSkuDetails(skuDetail)
                 .build()
         mBillingClient.loadRewardedSku(params) {
-            if (it.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.d(TAG, "Reward success")
-            }
+            mLoadRewardResponse.value = it
         }
     }
 
@@ -221,7 +225,9 @@ class BillingRepository private constructor(
         purchases.forEach { purchase ->
             if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
                 // Valid purchases
-                validPurchases.add(purchase)
+                if (isSignatureValid(purchase)) {
+                    validPurchases.add(purchase)
+                }
             } else if (purchase.purchaseState == Purchase.PurchaseState.PENDING) {
                 Log.d(TAG, "handlePurchases(): Receive a pending purchase of SKU: $purchase.sku")
                 // handle pending purchases, e.g. confirm with users about the pending
@@ -291,11 +297,10 @@ class BillingRepository private constructor(
         }
     }
 
-    private fun handleSkuDetails(skuDetailsList: MutableList<SkuDetails>) {
-        Log.d(TAG, "handleSkuDetails(): $skuDetailsList")
-        skuDetailsList.forEach {
-
-        }
+    private fun isSignatureValid(purchase: Purchase): Boolean {
+        return Security.verifyPurchase(
+                Security.BASE_64_ENCODE_PUBLIC_KEY, purchase.originalJson, purchase.signature
+        )
     }
 
     private fun isSubscriptionSupported(): Boolean {
@@ -324,6 +329,8 @@ class BillingRepository private constructor(
 
     fun getPurchaseHistoryRecord(): LiveData<List<PurchaseHistoryRecord>> = mPurchaseHistoryRecord
 
+    fun getLoadRewardResponse(): LiveData<BillingResult> = mLoadRewardResponse
+
     companion object {
         private val TAG = BillingRepository::class.java.simpleName
 
@@ -350,7 +357,7 @@ class BillingRepository private constructor(
         const val INAPP_ITEM_8 = "inapp_item_8"
         const val INAPP_ITEM_9 = "inapp_item_9"
         const val INAPP_ITEM_10 = "inapp_item_10"
-        const val REWARD_AD = "ads_get_life"
+        const val REWARD_AD = "android.test.reward"
 
         const val SUBS_MONTHLY = "subs_item_monthly"
         const val SUBS_YEARLY = "subs_item_yearly"

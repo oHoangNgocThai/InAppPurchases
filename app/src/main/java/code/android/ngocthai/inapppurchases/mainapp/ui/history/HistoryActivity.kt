@@ -40,7 +40,7 @@ class HistoryActivity : BaseActivity() {
                 .nonNullSingle()
                 .observe(this) {
                     Log.d(TAG, "Purchase record $it")
-                    mHistoryAdapter.updateAllData(it)
+                    mHistoryAdapter.submitList(it)
                 }
     }
 

@@ -14,9 +14,10 @@ import code.android.ngocthai.inapppurchases.base.entity.AugmentedSkuDetails
 import code.android.ngocthai.inapppurchases.base.extension.nonNullSingle
 import code.android.ngocthai.inapppurchases.base.extension.observe
 import code.android.ngocthai.inapppurchases.base.ui.BaseActivity
-import code.android.ngocthai.inapppurchases.mainapp.ui.billing.ProductAdapter
 import code.android.ngocthai.inapppurchases.mainapp.ui.history.HistoryActivity
+import com.android.billingclient.api.BillingClient
 import kotlinx.android.synthetic.main.activity_main.*
+
 
 class MainActivity : BaseActivity(), ProductAdapter.ProductListener {
 
@@ -43,7 +44,21 @@ class MainActivity : BaseActivity(), ProductAdapter.ProductListener {
                 .nonNullSingle()
                 .observe(this) {
                     Log.d(TAG, "AugmentedSkuDetails: $it")
-                    mProductAdapter.updateData(it)
+                    mProductAdapter.submitList(it)
+                    recyclerSkuDetails.scrollToPosition(0)
+                }
+
+        mViewModel.getLoadRewardResponse()
+                .nonNullSingle()
+                .observe(this) {
+                    when (it.responseCode) {
+                        BillingClient.BillingResponseCode.OK -> {
+                            Log.d(TAG, "getLoadRewardResponse(): OK")
+                        }
+                        else -> {
+                            Log.d(TAG, "getLoadRewardResponse(): ${it.debugMessage}")
+                        }
+                    }
                 }
     }
 

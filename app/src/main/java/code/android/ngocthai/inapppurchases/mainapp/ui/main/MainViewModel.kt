@@ -7,6 +7,7 @@ import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
 import code.android.ngocthai.inapppurchases.base.entity.AugmentedSkuDetails
 import code.android.ngocthai.inapppurchases.base.repository.BillingRepository
+import com.android.billingclient.api.BillingResult
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -17,6 +18,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val mBillingRepository: BillingRepository
 
     private var mAugmentedSkuDetailsLiveData: LiveData<List<AugmentedSkuDetails>>
+
+    private var mLoadRewardResponseLiveData: LiveData<BillingResult>
 
     private var mConsumePurchaseToken = MutableLiveData<String>()
     private var mNonConsumePurchaseToken = MutableLiveData<String>()
@@ -34,6 +37,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         mAugmentedSkuDetailsLiveData = mBillingRepository.getAugmentedSkuDetails()
         mConsumePurchaseToken = mBillingRepository.getConsumePurchaseToken()
         mNonConsumePurchaseToken = mBillingRepository.getNonConsumePurchaseToken()
+        mLoadRewardResponseLiveData = mBillingRepository.getLoadRewardResponse()
     }
 
     fun launchBilling(activity: Activity, augmentedSkuDetails: AugmentedSkuDetails) {
@@ -46,4 +50,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun getNonConsumePurchaseToken(): LiveData<String> = mNonConsumePurchaseToken
 
+    fun getLoadRewardResponse(): LiveData<BillingResult> = mLoadRewardResponseLiveData
+
+    override fun onCleared() {
+        super.onCleared()
+        mBillingRepository.endDataSourceConnection()
+    }
 }

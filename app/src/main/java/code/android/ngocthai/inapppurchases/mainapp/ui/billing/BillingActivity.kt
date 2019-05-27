@@ -2,8 +2,6 @@ package code.android.ngocthai.inapppurchases.mainapp.ui.billing
 
 import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.widget.Toast
 import code.android.ngocthai.inapppurchases.R
@@ -14,11 +12,7 @@ import code.android.ngocthai.inapppurchases.mainapp.util.AppConfig
 import code.android.ngocthai.inapppurchases.mainapp.util.SharedPrefs
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingResult
-import com.android.billingclient.api.SkuDetails
 import kotlinx.android.synthetic.main.activity_billing.*
-import kotlinx.android.synthetic.main.activity_product.buttonClearHistory
-import kotlinx.android.synthetic.main.activity_product.recyclerProduct
-import kotlinx.android.synthetic.main.activity_product.swipeRefreshProduct
 
 class BillingActivity : BaseActivity() {
 

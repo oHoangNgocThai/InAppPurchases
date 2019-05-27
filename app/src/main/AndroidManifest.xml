@@ -23,6 +23,10 @@
             </intent-filter>
         </activity>
         <activity android:name=".mainapp.ui.billing.BillingActivity" />
+
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-4572614651158941~2003515187" />
     </application>
 
 </manifest>
