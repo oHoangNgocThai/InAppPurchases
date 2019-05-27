@@ -23,7 +23,7 @@ class ProductAdapter(
     }
 
     override fun bind(rootView: View, item: AugmentedSkuDetails) {
-        rootView.textTitle.text = item.title?.substring(0, item.title.indexOf("("))
+        rootView.textTitle.text = item.description
         rootView.textPrice.text = item.price
 
         if (item.canPurchase) {

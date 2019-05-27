@@ -6,17 +6,32 @@ import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
 import android.util.Log
 import code.android.ngocthai.inapppurchases.base.entity.AugmentedSkuDetails
+import code.android.ngocthai.inapppurchases.base.repository.BillingRepository.RetryPolicies.connectionRetryPolicy
+import code.android.ngocthai.inapppurchases.base.repository.BillingRepository.RetryPolicies.resetConnectionRetryPolicyCounter
 import code.android.ngocthai.inapppurchases.base.repository.local.LocalBillingDb
 import com.android.billingclient.api.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.pow
 
 class BillingRepository private constructor(
         private val application: Application
 ) : PurchasesUpdatedListener, BillingClientStateListener, SkuDetailsResponseListener,
-        PurchaseHistoryResponseListener {
+        PurchaseHistoryResponseListener, ConsumeResponseListener {
+
+    companion object {
+        private val TAG = BillingRepository::class.java.simpleName
+
+        @Volatile
+        private var INSTANCE: BillingRepository? = null
+
+        fun getInstance(application: Application): BillingRepository =
+                INSTANCE ?: synchronized(this) {
+                    INSTANCE ?: BillingRepository(application).also {
+                        INSTANCE = it
+                    }
+                }
+    }
 
     private lateinit var mBillingClient: BillingClient
 
@@ -43,7 +58,7 @@ class BillingRepository private constructor(
     override fun onBillingServiceDisconnected() {
         // Reconnect to Service
         Log.d(TAG, "onBillingServiceDisconnected()")
-        connectToGooglePlayBillingService()
+        connectionRetryPolicy { connectToGooglePlayBillingService() }
     }
 
     override fun onSkuDetailsResponse(billingResult: BillingResult?, skuDetailsList: MutableList<SkuDetails>?) {
@@ -71,6 +86,7 @@ class BillingRepository private constructor(
             when (it.responseCode) {
                 BillingClient.BillingResponseCode.OK -> {
                     Log.d(TAG, "onBillingSetupFinished(): Successfully")
+                    resetConnectionRetryPolicyCounter()
                     if (mSkuListInApp.isNotEmpty()) {
                         querySkuDetailsAsync(BillingClient.SkuType.INAPP, mSkuListInApp)
                     }
@@ -124,6 +140,24 @@ class BillingRepository private constructor(
                 }
                 else -> {
                     Log.d(TAG, "onPurchaseHistoryResponse(): ${billingResult.debugMessage}")
+                }
+            }
+        }
+    }
+
+    override fun onConsumeResponse(billingResult: BillingResult?, purchaseToken: String?) {
+        billingResult?.let {
+            when (it.responseCode) {
+                BillingClient.BillingResponseCode.OK -> {
+                    Log.d(TAG, "onConsumeResponse(): OK")
+                    // Update database or ui
+                    purchaseToken?.let { token ->
+                        mConsumePurchaseToken.value = token
+                    }
+                    queryPurchaseHistoryAsync()
+                }
+                else -> {
+                    Log.d(TAG, "onConsumeResponse(): ${billingResult.debugMessage}")
                 }
             }
         }
@@ -250,24 +284,27 @@ class BillingRepository private constructor(
         Log.d(TAG, "handleConsumablePurchasesAsync()")
         consumables.forEach { purchase ->
             Log.d(TAG, "handleConsumablePurchasesAsync() foreach it is $purchase")
-            val params = ConsumeParams.newBuilder()
-                    .setPurchaseToken(purchase.purchaseToken)
-                    .build()
+            consumePurchase(purchase)
+        }
+    }
 
-            mBillingClient.consumeAsync(params) { billingResult, purchaseToken ->
-                when (billingResult.responseCode) {
-                    BillingClient.BillingResponseCode.OK -> {
-                        Log.d(TAG, "onConsumeResponse(): OK")
-                        // Update database or ui
-                        purchaseToken?.let { token ->
-                            mConsumePurchaseToken.value = token
-                        }
-                    }
-                    else -> {
-                        Log.d(TAG, "onConsumeResponse(): ${billingResult.debugMessage}")
-                    }
-                }
-            }
+    fun consumePurchase(purchase: Purchase) {
+        val params = ConsumeParams.newBuilder()
+                .setPurchaseToken(purchase.purchaseToken)
+                .build()
+        mBillingClient.consumeAsync(params, this)
+    }
+
+    fun clearHistory() {
+        // TODO: Fix
+        Log.d(TAG, "clearHistory()")
+        mBillingClient.queryPurchases(BillingClient.SkuType.INAPP)?.purchasesList?.forEach {
+            Log.d(TAG, "clearHistory(): INAPP purchase:$it")
+            consumePurchase(it)
+        }
+        mBillingClient.queryPurchases(BillingClient.SkuType.SUBS)?.purchasesList?.forEach {
+            Log.d(TAG, "clearHistory(): SUBS purchase:$it")
+            consumePurchase(it)
         }
     }
 
@@ -331,18 +368,54 @@ class BillingRepository private constructor(
 
     fun getLoadRewardResponse(): LiveData<BillingResult> = mLoadRewardResponse
 
-    companion object {
-        private val TAG = BillingRepository::class.java.simpleName
+    private object RetryPolicies {
+        private val maxRetry = 5
+        private var retryCounter = AtomicInteger(1)
+        private val baseDelayMillis = 500
+        private val taskDelay = 2000L
 
-        @Volatile
-        private var INSTANCE: BillingRepository? = null
+        fun resetConnectionRetryPolicyCounter() {
+            retryCounter.set(1)
+        }
 
-        fun getInstance(application: Application): BillingRepository =
-                INSTANCE ?: synchronized(this) {
-                    INSTANCE ?: BillingRepository(application).also {
-                        INSTANCE = it
-                    }
+        /**
+         * This works because it actually only makes one call. Then it waits for success or failure.
+         * onSuccess it makes no more calls and resets the retryCounter to 1. onFailure another
+         * call is made, until too many failures cause retryCounter to reach maxRetry and the
+         * policy stops trying. This is a safe algorithm: the initial calls to
+         * connectToPlayBillingService from instantiateAndConnectToPlayBillingService is always
+         * independent of the RetryPolicies. And so the Retry Policy exists only to help and never
+         * to hurt.
+         */
+        fun connectionRetryPolicy(block: () -> Unit) {
+            Log.d(TAG, "connectionRetryPolicy")
+            val scope = CoroutineScope(Job() + Dispatchers.Main)
+            scope.launch {
+                val counter = retryCounter.getAndIncrement()
+                if (counter < maxRetry) {
+                    val waitTime: Long = (2f.pow(counter) * baseDelayMillis).toLong()
+                    delay(waitTime)
+                    block()
                 }
+            }
+
+        }
+
+        /**
+         * All this is doing is check that billingClient is connected and if it's not, request
+         * connection, wait x number of seconds and then proceed with the actual task.
+         */
+        fun taskExecutionRetryPolicy(billingClient: BillingClient, listener: BillingRepository, task: () -> Unit) {
+            val scope = CoroutineScope(Job() + Dispatchers.Main)
+            scope.launch {
+                if (!billingClient.isReady) {
+                    Log.d(TAG, "taskExecutionRetryPolicy billing not ready")
+                    billingClient.startConnection(listener)
+                    delay(taskDelay)
+                }
+                task()
+            }
+        }
     }
 
     object PurchaseConfig {

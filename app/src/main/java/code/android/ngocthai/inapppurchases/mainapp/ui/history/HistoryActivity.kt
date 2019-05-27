@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
+import android.view.Menu
 import android.view.MenuItem
 import code.android.ngocthai.inapppurchases.R
 import code.android.ngocthai.inapppurchases.base.extension.nonNullSingle
@@ -44,10 +45,18 @@ class HistoryActivity : BaseActivity() {
                 }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_clear, menu)
+        return true
+    }
+
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when (item?.itemId) {
             android.R.id.home -> {
                 onBackPressed()
+            }
+            R.id.menu_clear -> {
+                mViewModel.clearHistory()
             }
         }
         return true
