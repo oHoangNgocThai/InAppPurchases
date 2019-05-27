@@ -8,6 +8,7 @@ import android.util.Log
 import code.android.ngocthai.inapppurchases.base.entity.AugmentedSkuDetails
 import code.android.ngocthai.inapppurchases.base.repository.BillingRepository.RetryPolicies.connectionRetryPolicy
 import code.android.ngocthai.inapppurchases.base.repository.BillingRepository.RetryPolicies.resetConnectionRetryPolicyCounter
+import code.android.ngocthai.inapppurchases.base.repository.BillingRepository.RetryPolicies.taskExecutionRetryPolicy
 import code.android.ngocthai.inapppurchases.base.repository.local.LocalBillingDb
 import com.android.billingclient.api.*
 import kotlinx.coroutines.*
@@ -154,7 +155,6 @@ class BillingRepository private constructor(
                     purchaseToken?.let { token ->
                         mConsumePurchaseToken.value = token
                     }
-                    queryPurchaseHistoryAsync()
                 }
                 else -> {
                     Log.d(TAG, "onConsumeResponse(): ${billingResult.debugMessage}")
@@ -196,24 +196,32 @@ class BillingRepository private constructor(
     }
 
     fun queryPurchasesAsync() {
-        Log.d(TAG, "queryPurchasesAsync()")
-        val purchasesResult = hashSetOf<Purchase>()
-        var result = mBillingClient.queryPurchases(BillingClient.SkuType.INAPP)
-        Log.d(TAG, "queryPurchasesAsync(): INAPP result:${result.purchasesList.size}")
-        result?.purchasesList?.apply { purchasesResult.addAll(this) }
-        if (isSubscriptionSupported()) {
-            result = mBillingClient.queryPurchases(BillingClient.SkuType.SUBS)
+        fun task() {
+            Log.d(TAG, "queryPurchasesAsync()")
+            val purchasesResult = hashSetOf<Purchase>()
+            var result = mBillingClient.queryPurchases(BillingClient.SkuType.INAPP)
+            Log.d(TAG, "queryPurchasesAsync(): INAPP result:${result.purchasesList.size}")
             result?.purchasesList?.apply { purchasesResult.addAll(this) }
-            Log.d(TAG, "queryPurchasesAsync(): SUBS results:${result?.purchasesList?.size}")
+            if (isSubscriptionSupported()) {
+                result = mBillingClient.queryPurchases(BillingClient.SkuType.SUBS)
+                result?.purchasesList?.apply { purchasesResult.addAll(this) }
+                Log.d(TAG, "queryPurchasesAsync(): SUBS results:${result?.purchasesList?.size}")
+            }
+
+            handlePurchases(purchasesResult)
         }
 
-        handlePurchases(purchasesResult)
+        taskExecutionRetryPolicy(mBillingClient, this) { task() }
     }
 
     fun queryPurchaseHistoryAsync() {
-        mPurchaseHistoryRecordEntity.clear()
-        mBillingClient.queryPurchaseHistoryAsync(BillingClient.SkuType.INAPP, this)
-        mBillingClient.queryPurchaseHistoryAsync(BillingClient.SkuType.SUBS, this)
+        fun task() {
+            Log.d(TAG, "queryPurchaseHistoryAsync()")
+            mBillingClient.queryPurchaseHistoryAsync(BillingClient.SkuType.INAPP, this)
+            mBillingClient.queryPurchaseHistoryAsync(BillingClient.SkuType.SUBS, this)
+        }
+
+        taskExecutionRetryPolicy(mBillingClient, this) { task() }
     }
 
     fun querySkuDetailsAsync(skuType: String, skuList: List<String>) {
@@ -221,7 +229,10 @@ class BillingRepository private constructor(
                 .setType(skuType)
                 .setSkusList(skuList)
                 .build()
-        mBillingClient.querySkuDetailsAsync(params, this)
+        taskExecutionRetryPolicy(mBillingClient, this) {
+            Log.d(TAG, "querySkuDetailsAsync() for $skuType")
+            mBillingClient.querySkuDetailsAsync(params, this)
+        }
     }
 
     fun launchBillingFlow(activity: Activity, augmentedSkuDetails: AugmentedSkuDetails) {
@@ -234,11 +245,14 @@ class BillingRepository private constructor(
     }
 
     fun launchBillingFlow(activity: Activity, skuDetails: SkuDetails) {
-        Log.d(TAG, "launchBillingFlow()")
         val params = BillingFlowParams.newBuilder()
                 .setSkuDetails(skuDetails)
                 .build()
-        mBillingClient.launchBillingFlow(activity, params)
+
+        taskExecutionRetryPolicy(mBillingClient, this) {
+            Log.d(TAG, "launchBillingFlow()")
+            mBillingClient.launchBillingFlow(activity, params)
+        }
     }
 
     fun launchBillingReward(skuDetail: SkuDetails) {
@@ -253,7 +267,6 @@ class BillingRepository private constructor(
 
     private fun handlePurchases(purchases: Set<Purchase>) {
         Log.d(TAG, "handlePurchases()")
-        // TODO: Validate purchase, save to server or local database
 
         val validPurchases = HashSet<Purchase>(purchases.size)
         purchases.forEach { purchase ->
@@ -267,6 +280,8 @@ class BillingRepository private constructor(
                 // handle pending purchases, e.g. confirm with users about the pending
                 // purchases, prompt them to complete it, etc.
             }
+
+            // Send purchases to server and save to local database
 
             val (consumables, nonConsumables) = validPurchases.partition {
                 PurchaseConfig.CONSUMABLE_SKUS.contains(it.sku)
@@ -292,19 +307,8 @@ class BillingRepository private constructor(
         val params = ConsumeParams.newBuilder()
                 .setPurchaseToken(purchase.purchaseToken)
                 .build()
-        mBillingClient.consumeAsync(params, this)
-    }
-
-    fun clearHistory() {
-        // TODO: Fix
-        Log.d(TAG, "clearHistory()")
-        mBillingClient.queryPurchases(BillingClient.SkuType.INAPP)?.purchasesList?.forEach {
-            Log.d(TAG, "clearHistory(): INAPP purchase:$it")
-            consumePurchase(it)
-        }
-        mBillingClient.queryPurchases(BillingClient.SkuType.SUBS)?.purchasesList?.forEach {
-            Log.d(TAG, "clearHistory(): SUBS purchase:$it")
-            consumePurchase(it)
+        taskExecutionRetryPolicy(mBillingClient, this) {
+            mBillingClient.consumeAsync(params, this)
         }
     }
 

@@ -45,18 +45,10 @@ class HistoryActivity : BaseActivity() {
                 }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.menu_clear, menu)
-        return true
-    }
-
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when (item?.itemId) {
             android.R.id.home -> {
                 onBackPressed()
-            }
-            R.id.menu_clear -> {
-                mViewModel.clearHistory()
             }
         }
         return true

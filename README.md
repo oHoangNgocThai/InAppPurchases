@@ -520,3 +520,13 @@ if (skuDetails.isRewarded()) {
 * Khi app được publish ở dạng **Internal test**, chỉ những email nào nằm trong danh sách mới tìm thấy và phải join vào trương trình test bằng cách vào Developer Console App Releases → Alpha → Manage testers → Tìm Opt-in URL và gửi email test để họ chấp nhận.
 
 * Xem thêm các bước test ở [Test Play Billing](https://developer.android.com/google/play/billing/billing_testing)
+
+--------------------------------------------------------
+
+Tham khảo: 
+
+* https://codelabs.developers.google.com/codelabs/play-billing-scalable-kotlin/index.html?index=..%2F..index#0
+
+* https://developer.android.com/google/play/billing/billing_library_overview
+
+* https://medium.com/@vleonovs8/tutorial-google-play-billing-in-app-purchases-6143bda8d290

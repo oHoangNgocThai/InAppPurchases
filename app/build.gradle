@@ -12,17 +12,17 @@ android {
         applicationId "code.android.ngocthai.inappbilling"
         minSdkVersion 21
         targetSdkVersion 28
-        versionCode 14
-        versionName "14"
+        versionCode 16
+        versionName "16"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
         release {
-            keyAlias '***'
-            storePassword '***'
-            storeFile file("Directory to .jks")
-            keyPassword '***'
+            keyAlias 'inappbilling'
+            storePassword 'hnthai.69'
+            storeFile file("/home/thaihn/WorkingSpace/Training/InAppPurchases/key/inappbilling.jks")
+            keyPassword 'hnthai.69'
         }
     }
 
