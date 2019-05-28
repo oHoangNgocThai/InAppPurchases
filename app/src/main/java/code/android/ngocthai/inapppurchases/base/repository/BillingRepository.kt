@@ -434,14 +434,19 @@ class BillingRepository private constructor(
         const val INAPP_ITEM_8 = "inapp_item_8"
         const val INAPP_ITEM_9 = "inapp_item_9"
         const val INAPP_ITEM_10 = "inapp_item_10"
+        const val INAPP_ITEM_11 = "inapp_item_11"
+        const val INAPP_ITEM_12 = "inapp_item_12"
+        const val INAPP_ITEM_13 = "inapp_item_13"
+        const val INAPP_ITEM_14 = "inapp_item_14"
+        const val INAPP_ITEM_15 = "inapp_item_15"
         const val REWARD_AD = "android.test.reward"
 
         const val SUBS_MONTHLY = "subs_item_monthly"
         const val SUBS_YEARLY = "subs_item_yearly"
 
         val INAPP_SKUS = listOf(INAPP_ITEM_1, INAPP_ITEM_2, INAPP_ITEM_3, INAPP_ITEM_4, INAPP_ITEM_5, INAPP_ITEM_6,
-                INAPP_ITEM_7, INAPP_ITEM_8, INAPP_ITEM_9, INAPP_ITEM_10, REWARD_AD)
+                INAPP_ITEM_7, INAPP_ITEM_8, INAPP_ITEM_9, INAPP_ITEM_10, REWARD_AD, INAPP_ITEM_11, INAPP_ITEM_12, INAPP_ITEM_13, INAPP_ITEM_14, INAPP_ITEM_15)
         val SUBS_SKUS = listOf(SUBS_MONTHLY, SUBS_YEARLY)
-        val CONSUMABLE_SKUS = listOf(INAPP_ITEM_1, INAPP_ITEM_2, INAPP_ITEM_3, INAPP_ITEM_4, INAPP_ITEM_5)
+        val CONSUMABLE_SKUS = listOf(INAPP_ITEM_1, INAPP_ITEM_2, INAPP_ITEM_3, INAPP_ITEM_4, INAPP_ITEM_5, INAPP_ITEM_6, INAPP_ITEM_7)
     }
 }
