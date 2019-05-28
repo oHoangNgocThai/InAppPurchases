@@ -376,7 +376,7 @@ class BillingRepository private constructor(
         private val maxRetry = 5
         private var retryCounter = AtomicInteger(1)
         private val baseDelayMillis = 500
-        private val taskDelay = 2000L
+        private val taskDelay = 500L
 
         fun resetConnectionRetryPolicyCounter() {
             retryCounter.set(1)

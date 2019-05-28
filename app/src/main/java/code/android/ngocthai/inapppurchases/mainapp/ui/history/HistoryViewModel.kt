@@ -26,8 +26,8 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
 
     fun getPurchaseHistoryRecord(): LiveData<List<PurchaseHistoryRecord>> = mPurchaseHistoryRecordLiveData
 
-    override fun onCleared() {
-        super.onCleared()
-        mBillingRepository.endDataSourceConnection()
-    }
+//    override fun onCleared() {
+//        super.onCleared()
+//        mBillingRepository.endDataSourceConnection()
+//    }
 }

@@ -62,6 +62,11 @@ class MainActivity : BaseActivity(), ProductAdapter.ProductListener {
                 }
     }
 
+    override fun onStart() {
+        super.onStart()
+        mViewModel.startData()
+    }
+
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
         return true
@@ -74,6 +79,11 @@ class MainActivity : BaseActivity(), ProductAdapter.ProductListener {
             }
         }
         return true
+    }
+
+    override fun onStop() {
+        super.onStop()
+        mViewModel.clearData()
     }
 
     override fun onBuyClick(item: AugmentedSkuDetails) {

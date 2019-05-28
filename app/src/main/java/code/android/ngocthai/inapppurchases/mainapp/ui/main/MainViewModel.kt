@@ -5,6 +5,7 @@ import android.app.Application
 import android.arch.lifecycle.AndroidViewModel
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
+import android.util.Log
 import code.android.ngocthai.inapppurchases.base.entity.AugmentedSkuDetails
 import code.android.ngocthai.inapppurchases.base.repository.BillingRepository
 import com.android.billingclient.api.BillingResult
@@ -52,8 +53,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun getLoadRewardResponse(): LiveData<BillingResult> = mLoadRewardResponseLiveData
 
-    override fun onCleared() {
-        super.onCleared()
+    fun startData() {
+        mBillingRepository.startDataSourceConnection()
+    }
+
+    fun clearData() {
         mBillingRepository.endDataSourceConnection()
     }
+
+//    override fun onCleared() {
+//        super.onCleared()
+//        Log.d(TAG, "onClear()")
+//        mBillingRepository.endDataSourceConnection()
+//    }
 }
